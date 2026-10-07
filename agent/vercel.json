@@ -1,7 +1,12 @@
 {
   "framework": null,
   "installCommand": "echo skip",
-  "buildCommand": "bash vercel-build.sh && rm -rf public && cp -R ../public ./public",
+  "buildCommand": "for f in ./vercel-build.sh ./agent/vercel-build.sh ../agent/vercel-build.sh; do if [ -f \"$f\" ]; then echo \"running $f\"; bash \"$f\"; break; fi; done; if [ ! -f public/index.html ]; then for p in ../public ./agent/../public; do if [ -f \"$p/index.html\" ]; then rm -rf public; cp -R \"$p\" ./public; break; fi; done; fi; echo \"publishing $(pwd)/public\"; ls public",
   "outputDirectory": "public",
-  "crons": [{ "path": "/api/refresh", "schedule": "0 14 * * 3" }]
+  "crons": [
+    {
+      "path": "/api/refresh",
+      "schedule": "0 14 * * 3"
+    }
+  ]
 }
