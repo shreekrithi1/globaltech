@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "echo skip",
+  "buildCommand": "rm -rf public && cp -R ../public ./public",
+  "outputDirectory": "public"
+}
