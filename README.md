@@ -13,7 +13,7 @@ Search any city, filter to **free** events, and jump straight to the **Luma / Ev
 
 1. Queries the **You.com Search API** for Luma, Eventbrite and Meetup tech events in ~30 world cities
 2. Opens each event page and reads its schema.org `Event` data → title, dates, venue coordinates, cover image, price
-3. Merges into `data/events.json`, removes ended events, and commits the file
+3. Merges into `public/data/events.json`, removes ended events, and commits the file
 
 ### Setup
 1. Get a key at <https://you.com/platform/api-keys>

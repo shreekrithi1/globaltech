@@ -1,7 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "",
-  "installCommand": "",
-  "outputDirectory": ".",
-  "cleanUrls": true
+  "buildCommand": "echo static",
+  "installCommand": "echo skip",
+  "outputDirectory": "public"
 }

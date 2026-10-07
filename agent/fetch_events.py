@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 import requests
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data" / "events.json"
+DATA = ROOT / "public" / "data" / "events.json"
 YDC_URL = "https://ydc-index.io/v1/search"
 UA = {"User-Agent": "Mozilla/5.0 (GlobalTechEventsBot; +https://github.com/shreekrithi1/globaltech)"}
 
