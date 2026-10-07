@@ -9,20 +9,28 @@ Search any city, filter to **free** events, and jump straight to the **Luma / Ev
 - Shows only events **starting today or later** (past events are hidden client-side and pruned by the agent)
 
 ## Weekly agent
-`agent/fetch_events.py` runs every Monday via GitHub Actions (`.github/workflows/weekly-events.yml`):
+`agent/run.py` runs every **Wednesday** (and right away whenever the agent code changes) via `.github/workflows/weekly-events.yml`.
 
-1. Pulls every upcoming **Google Developer Groups** event worldwide (gdg.community.dev) and the full **SF Tech Week** calendar
-2. Queries the **You.com Search API** for Luma, Eventbrite and Meetup tech events in ~30 world cities
-2. Opens each event page and reads its schema.org `Event` data → title, dates, venue coordinates, cover image, price
-3. Merges into `public/data/events.json`, removes ended events, and commits the file
+1. Deletes every event that ended before today.
+2. Collects fresh events from:
+   - **Google Developer Groups** – every upcoming GDG event worldwide (gdg.community.dev)
+   - **SF Tech Week** – the full tech-week.com calendar
+   - **confs.tech** – developer conferences and **open calls for speakers**
+   - **You.com Search API** – finds Luma, Eventbrite, Meetup and Sessionize pages in ~40 tech hubs, then opens each page
+     and keeps it only if it contains a real schema.org Event (or a Sessionize call for speakers) dated today or later.
+   If a source fails, last week's events from it are kept.
+3. Removes duplicates (`agent/dedupe.py`): same canonical link (lu.ma = luma.com, Eventbrite/Meetup ids, tracking params
+   stripped) or same dates + same place + matching title (years, city names and filler words ignored). Side events
+   (receptions, workshops, parties), different edition numbers and different names (React Summit vs Vue Summit) are
+   never merged. The richest record wins and the other links are kept as "Also listed on".
+4. Writes `public/data/events.json` and a run report at `public/data/agent-report.json`.
 
 ### Setup
-1. Get a key at <https://you.com/platform/api-keys>
-2. Repo → Settings → Secrets and variables → Actions → New secret **`YDC_API_KEY`**
-3. Actions → *Weekly events agent* → **Run workflow** to fill data now
+Add a repository secret named **`YOU_COM_API`** (Settings → Secrets and variables → Actions) with your You.com API key.
+Without it the agent still refreshes GDG, Tech Week and confs.tech.
 
-Run locally: `pip install -r agent/requirements.txt && YDC_API_KEY=... python agent/fetch_events.py`
-(Optional: `CITIES="Tokyo,Berlin"` to limit the run.)
+Run locally: `pip install -r agent/requirements.txt && YOU_COM_API=... python agent/run.py`
+(`SOURCES=gdg,confstech` or `CITIES="Tokyo,Berlin"` limit a run.)
 
 ## Run / deploy the site
 Static site, no build step. `python -m http.server` then open http://localhost:8000.

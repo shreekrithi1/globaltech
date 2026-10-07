@@ -2,29 +2,39 @@ name: Weekly events agent
 
 on:
   schedule:
-    - cron: "0 14 * * 1"   # every Monday 14:00 UTC
+    - cron: "0 14 * * 3"   # every Wednesday 14:00 UTC (7am Pacific) — the first run is today
+  push:                     # also run right away whenever the agent itself changes
+    branches: [main]
+    paths: ["agent/**", ".github/workflows/weekly-events.yml"]
   workflow_dispatch: {}
 
 permissions:
   contents: write
 
+concurrency:
+  group: weekly-events
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r agent/requirements.txt
-      - name: Find events with You.com
+      - name: Find, merge and de-duplicate events
         env:
-          YDC_API_KEY: ${{ secrets.YDC_API_KEY }}
-        run: python agent/fetch_events.py
+          YOU_COM_API: ${{ secrets.YOU_COM_API }}
+        run: python agent/run.py
       - name: Commit updated data
         run: |
-          git config user.name "globaltech-agent"
+          git config user.name "techevents-agent"
           git config user.email "actions@users.noreply.github.com"
-          git add public/data/events.json
-          git diff --cached --quiet || git commit -m "chore(data): weekly events refresh $(date -u +%F)"
+          git add public/data/events.json public/data/agent-report.json agent/geocache.json
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore(data): weekly events refresh $(date -u +%F)"
+          git pull --rebase origin main
           git push

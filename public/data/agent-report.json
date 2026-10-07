@@ -1,0 +1,18 @@
+{
+  "run": "2026-10-07T21:16:49Z",
+  "today": "2026-10-07",
+  "pruned": 1,
+  "sources": {
+    "confstech": {
+      "ok": true,
+      "events": 154,
+      "seconds": 4.7
+    }
+  },
+  "fresh": 154,
+  "carried_over": 1958,
+  "duplicates_merged": 3,
+  "total": 2109,
+  "speaker_opportunities": 23,
+  "seconds": 9.7
+}

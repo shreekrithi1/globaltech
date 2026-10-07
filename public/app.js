@@ -2,14 +2,14 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   let spinning = true, idleT = null;
-  const state = { all: [], city: "", q: "", when: "all", free: false, src: "all", hot: null };
+  const state = { all: [], speakers: false, city: "", q: "", when: "all", free: false, src: "all", hot: null };
   const PALETTES = [["#5cf2c0","#8b7cff"],["#ff6fb5","#8b7cff"],["#ffb84d","#ff6fb5"],["#5cc8ff","#5cf2c0"],["#8b7cff","#5cc8ff"]];
   const todayISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
   const esc = (s = "") => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
   const d = (iso) => new Date(iso + "T12:00:00");
   const fmt = (iso, o) => d(iso).toLocaleDateString(undefined, o);
-  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site", techweek: "SF Tech Week", gdg: "GDG" };
+  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site", techweek: "SF Tech Week", gdg: "GDG", confstech: "confs.tech", sessionize: "Sessionize" };
   const hhmm = (t) => { if (!t) return ""; const [h, m] = t.split(":").map(Number); return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${h < 12 ? "am" : "pm"}`; };
   const PAGE = 120; let shown = PAGE;
 
@@ -70,7 +70,7 @@
         if (src) { img.src = src; img.hidden = false; }
       };
       fill();
-      if (ev) ev.addEventListener("error", () => ev.remove(), { once: true });
+      if (ev) ev.addEventListener("error", () => { ev.remove(); c.querySelector("img.evbg")?.remove(); }, { once: true });
     });
   }
 
@@ -79,11 +79,12 @@
     const place = e.area && e.area !== e.city ? e.area : e.city;
     const art = `<div class="art" style="--c1:${c1}55;--c2:${c2}66"><span>${esc(place)}</span></div>`;
     const ph = `<img class="ph" alt="" hidden decoding="async" referrerpolicy="no-referrer">`;
-    const img = e.image ? `<img class="ev" src="${esc(e.image)}" alt="" decoding="async" referrerpolicy="no-referrer">` : "";
+    const img = e.image ? `<img class="evbg" src="${esc(e.image)}" alt="" aria-hidden="true" decoding="async" referrerpolicy="no-referrer"><img class="ev" src="${esc(e.image)}" alt="" decoding="async" referrerpolicy="no-referrer">` : "";
     return `<div class="cover" data-place="${esc(place)}" data-city="${esc(e.city)}">${art}${ph}${img}
       ${e.image ? "" : `<span class="credit">${esc(place)} · Wikimedia</span>`}
+      ${speakerOpen(e) ? `<span class="cfp-badge">🎤 Speakers wanted</span>` : ""}
       <div class="date"><b>${d(e.start).getDate()}</b><small>${fmt(e.start, { month: "short" })}</small></div>
-      <span class="badge ${e.free ? "free" : "paid"}">${e.free ? "FREE" : esc(e.price && e.price !== "Paid" ? e.price : "Paid")}</span></div>`;
+      <span class="badge ${e.free ? "free" : "paid"}">${e.free ? "FREE" : esc(e.price === "See event page" ? "Tickets" : e.price && e.price !== "Paid" ? e.price : "Paid")}</span></div>`;
   }
 
   function cardHTML(e) {
@@ -98,6 +99,7 @@
       </div></article>`;
   }
 
+  const speakerOpen = (e) => !!e.speaker && (!e.speaker.deadline || e.speaker.deadline >= todayISO());
   /* ---------- filtering ---------- */
   function filtered() {
     const t = todayISO();
@@ -108,6 +110,7 @@
       (e.end || e.start) >= t && e.start <= max &&
       (!state.city || e.city === state.city) &&
       (!state.free || e.free) &&
+      (!state.speakers || speakerOpen(e)) &&
       (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite", "techweek", "gdg"].includes(e.platform))) &&
       (!q || [e.city, e.area, e.country, e.title, e.host, ...(e.tags || [])].join(" ").toLowerCase().includes(q))
     ).sort((a, b) => a.start.localeCompare(b.start));
@@ -147,10 +150,13 @@
     const top = Object.entries(cities).sort((a, b) => b[1] - a[1]);
     $("#cityList").innerHTML = top.map(([c]) => `<option value="${esc(c)}">`).join("");
     const gdgN = up.filter((e) => e.platform === "gdg").length;
-    $("#cityChips").innerHTML = (gdgN ? `<button class="chip gdg-chip ${state.src === "gdg" ? "on" : ""}" data-gdg="1"><span class="gdot"><i></i><i></i><i></i><i></i></span>GDG events<small>${gdgN}</small></button>` : "") + top.slice(0, 14).map(([c, n]) => `<button class="chip" data-city="${esc(c)}">${esc(c)}<small>${n}</small></button>`).join("");
+    const spkN = up.filter(speakerOpen).length;
+    $("#cityChips").innerHTML = (spkN ? `<button class="chip spk-chip ${state.speakers ? "on" : ""}" data-spk="1">🎤 Speaker opportunities<small>${spkN}</small></button>` : "") + (gdgN ? `<button class="chip gdg-chip ${state.src === "gdg" ? "on" : ""}" data-gdg="1"><span class="gdot"><i></i><i></i><i></i><i></i></span>GDG events<small>${gdgN}</small></button>` : "") + top.slice(0, 14).map(([c, n]) => `<button class="chip" data-city="${esc(c)}">${esc(c)}<small>${n}</small></button>`).join("");
+    const sc = $("#cityChips .spk-chip");
+    if (sc) sc.onclick = () => { state.speakers = !state.speakers; sc.classList.toggle("on", state.speakers); $("#spkOnly").checked = state.speakers; render(); };
     const gc = $("#cityChips .gdg-chip");
     if (gc) gc.onclick = () => setSrc(state.src === "gdg" ? "all" : "gdg");
-    $("#cityChips").querySelectorAll(".chip:not(.gdg-chip)").forEach((b) => b.onclick = () => setCity(state.city === b.dataset.city ? "" : b.dataset.city));
+    $("#cityChips").querySelectorAll(".chip[data-city]").forEach((b) => b.onclick = () => setCity(state.city === b.dataset.city ? "" : b.dataset.city));
   }
 
   function setQuery(v) {
@@ -159,14 +165,14 @@
     if (known) { $("#q").value = v; return setCity(known.city, true); }
     state.city = ""; state.q = v; $("#q").value = v;
     $(".search").classList.toggle("has", !!v);
-    document.querySelectorAll(".chip").forEach((c) => c.classList.remove("on"));
+    document.querySelectorAll(".chip[data-city]").forEach((c) => c.classList.remove("on"));
     render(true);
   }
   function setCity(city, keepInput) {
     state.city = city; state.q = "";
     if (!keepInput) $("#q").value = city;
     $(".search").classList.toggle("has", !!city);
-    document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.dataset.city === city));
+    document.querySelectorAll(".chip[data-city]").forEach((c) => c.classList.toggle("on", c.dataset.city === city));
     spinning = false;
     render(true);
     if (city && innerWidth <= 860 && window.setSheet) window.setSheet("half");
@@ -374,7 +380,7 @@
     el.addEventListener("click", open);
     el.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); open(); } });
   }
-  const regLabel = { luma: "Register on Luma", eventbrite: "Get tickets on Eventbrite", meetup: "RSVP on Meetup", techweek: "RSVP via SF Tech Week", gdg: "RSVP on GDG", web: "Visit official site" };
+  const regLabel = { luma: "Register on Luma", eventbrite: "Get tickets on Eventbrite", meetup: "RSVP on Meetup", techweek: "RSVP via SF Tech Week", gdg: "RSVP on GDG", confstech: "Visit conference site", sessionize: "Open on Sessionize", web: "Visit official site" };
   function openDetail(id) {
     const e = state.all.find((x) => x.id === id); if (!e) return;
     const dlg = $("#detail");
@@ -391,11 +397,13 @@
           ${e.host ? `<div><dt>Host</dt><dd>${esc(e.host)}</dd></div>` : ""}
           <div><dt>Price</dt><dd>${e.free ? '<b class="freetxt">Free</b>' : esc(e.price || "See event page")}</dd></div>
         </dl>
+        ${speakerOpen(e) ? `<div class="cfp-box"><div><b>🎤 Call for speakers is open</b><span>${e.speaker.deadline ? "Apply by " + fmt(e.speaker.deadline, { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : "Submissions are open — check the event page for the deadline"}</span></div><a class="cfp-cta" href="${esc(e.speaker.url || e.url)}" target="_blank" rel="noopener">Apply to speak ↗</a></div>` : ""}
         ${e.description ? `<p class="ddesc">${esc(e.description)}</p>` : ""}
         <div class="dactions">
           <a class="cta" href="${esc(e.url)}" target="_blank" rel="noopener">${regLabel[e.platform] || "Open event page"} ↗</a>
           <button class="ghost" id="dmap">Show on map</button>
         </div>
+        ${(e.alsoAt || []).length ? `<p class="also">Also listed on ${(e.alsoAt || []).map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(new URL(u).hostname.replace(/^www\./, ""))}</a>`).join(", ")}</p>` : ""}
         <p class="dnote">Details come from the event page. Always confirm time and venue there before you go.</p>
       </div>`;
     hydrateCovers(dlg);
@@ -433,6 +441,7 @@
   $("#q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => setQuery(e.target.value), 280); });
   $("#clear").onclick = () => { setCity(""); setQuery(""); };
   $("#freeOnly").onchange = (e) => { state.free = e.target.checked; render(); };
+  $("#spkOnly").onchange = (e) => { state.speakers = e.target.checked; $("#cityChips .spk-chip")?.classList.toggle("on", state.speakers); render(); };
   document.querySelectorAll("[data-when]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-when]").forEach((x) => x.classList.toggle("on", x === b)); state.when = b.dataset.when; render();
   });
