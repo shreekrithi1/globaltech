@@ -8,7 +8,9 @@
   const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
   const d = (iso) => new Date(iso + "T12:00:00");
   const fmt = (iso, o) => d(iso).toLocaleDateString(undefined, o);
-  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site" };
+  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site", techweek: "SF Tech Week" };
+  const hhmm = (t) => { if (!t) return ""; const [h, m] = t.split(":").map(Number); return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${h < 12 ? "am" : "pm"}`; };
+  const PAGE = 120; let shown = PAGE;
 
   function whenText(e) {
     const t = todayISO();
@@ -33,7 +35,8 @@
     return `<a class="card" href="${esc(e.url)}" target="_blank" rel="noopener" data-id="${esc(e.id)}">
       ${coverHTML(e)}
       <div class="body">
-        <div class="meta"><span class="when">${whenText(e)}</span>·<span>${esc(e.city)}, ${esc(e.country)}</span></div>
+        <div class="meta"><span class="when">${whenText(e)}${e.time ? " · " + hhmm(e.time) + (e.endTime ? "–" + hhmm(e.endTime) : "") : ""}</span>·<span>${esc(e.area && e.area !== e.city ? e.area + ", " + e.city : e.city + ", " + e.country)}</span></div>
+        ${e.host ? `<div class="host">by ${esc(e.host)}</div>` : ""}
         <h3>${esc(e.title)}</h3>
         ${e.description ? `<p>${esc(e.description)}</p>` : ""}
         <div class="row"><span class="src ${esc(e.platform)}">${srcLabel[e.platform] || "Web"}</span><span class="go">View &amp; register ↗</span></div>
@@ -49,8 +52,8 @@
     return state.all.filter((e) =>
       (e.end || e.start) >= t && e.start <= max &&
       (!state.free || e.free) &&
-      (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite"].includes(e.platform))) &&
-      (!q || [e.city, e.country, e.title, ...(e.tags || [])].join(" ").toLowerCase().includes(q))
+      (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite", "techweek"].includes(e.platform))) &&
+      (!q || [e.city, e.area, e.country, e.title, e.host, ...(e.tags || [])].join(" ").toLowerCase().includes(q))
     ).sort((a, b) => a.start.localeCompare(b.start));
   }
 
@@ -59,8 +62,10 @@
     const q = state.q.trim();
     $("#listTitle").textContent = q ? `Events matching “${q}”` : "Upcoming worldwide";
     $("#count").textContent = `${list.length} event${list.length === 1 ? "" : "s"}`;
-    $("#cards").innerHTML = list.length ? list.map(cardHTML).join("") :
+    if (fly !== "more") shown = PAGE;
+    $("#cards").innerHTML = list.length ? list.slice(0, shown).map(cardHTML).join("") + (list.length > shown ? `<button class="more" id="more">Show more (${list.length - shown} left)</button>` : "") :
       `<div class="empty">No upcoming events found${q ? ` for “${esc(q)}”` : ""} yet.<br>The agent searches new cities every week.</div>`;
+    const mb = $("#more"); if (mb) mb.onclick = () => { shown += PAGE * 2; render("more"); };
     $("#cards").querySelectorAll(".card").forEach((el, i) => {
       el.style.animationDelay = `${Math.min(i, 12) * 35}ms`;
       el.addEventListener("mouseenter", () => highlight(el.dataset.id));
@@ -68,7 +73,7 @@
     });
     const src = map.loaded && map.isStyleLoaded() && map.getSource("events");
     if (src) src.setData(toGeo(list));
-    if (fly) flyTo(list);
+    if (fly === true) flyTo(list);
   }
 
   function renderStats() {

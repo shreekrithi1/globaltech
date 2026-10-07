@@ -21,6 +21,7 @@ import re
 import sys
 import time
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from urllib.parse import urlparse
 
 import requests
@@ -213,6 +214,16 @@ def main() -> int:
                     by_url[ev["url"]] = {**by_url.get(ev["url"], {}), **ev}
                     print(f"   + {ev['start']} {ev['title'][:60]} [{ev['price']}]")
                 time.sleep(0.4)
+
+    try:
+        import techweek
+        tw = techweek.fetch("sf", now)
+        by_url = {u: e for u, e in by_url.items() if e.get("platform") != "techweek"}
+        for ev in tw:
+            by_url[ev["url"]] = ev
+        print(f"• SF Tech Week: {len(tw)} events")
+    except Exception as exc:  # keep the weekly run alive if tech-week changes
+        print(f"  ! tech-week fetch failed: {exc}", file=sys.stderr)
 
     events = [e for e in by_url.values() if (e.get("end") or e["start"]) >= now.isoformat()]
     events.sort(key=lambda e: (e["start"], e["title"]))

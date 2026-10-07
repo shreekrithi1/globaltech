@@ -128,3 +128,8 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--mint),var(--viole
 }
 
 .search input::-webkit-calendar-picker-indicator{display:none!important}
+
+.host{font-size:12px;color:var(--mute);margin:-2px 0 8px}
+.src.techweek{background:rgba(92,242,192,.14);color:var(--mint)}
+.more{width:100%;padding:12px;border-radius:12px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-size:14px}
+.more:hover{border-color:var(--violet)}
