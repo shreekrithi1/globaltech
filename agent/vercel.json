@@ -1,6 +1,7 @@
 {
   "framework": null,
   "installCommand": "echo skip",
-  "buildCommand": "rm -rf public && cp -R ../public ./public",
-  "outputDirectory": "public"
+  "buildCommand": "bash vercel-build.sh && rm -rf public && cp -R ../public ./public",
+  "outputDirectory": "public",
+  "crons": [{ "path": "/api/refresh", "schedule": "0 14 * * 3" }]
 }

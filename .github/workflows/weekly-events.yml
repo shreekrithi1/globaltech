@@ -1,11 +1,8 @@
 name: Weekly events agent
 
+# The weekly refresh now runs inside Vercel (agent/vercel-build.sh + Vercel Cron), where YOU_COM_API is set.
+# This workflow is kept as a manual fallback: Actions → Weekly events agent → Run workflow.
 on:
-  schedule:
-    - cron: "0 14 * * 3"   # every Wednesday 14:00 UTC (7am Pacific) — the first run is today
-  push:                     # also run right away whenever the agent itself changes
-    branches: [main]
-    paths: ["agent/**", ".github/workflows/weekly-events.yml"]
   workflow_dispatch: {}
 
 permissions:

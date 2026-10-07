@@ -1,6 +1,7 @@
 {
   "framework": null,
-  "buildCommand": "echo static",
   "installCommand": "echo skip",
-  "outputDirectory": "public"
+  "buildCommand": "bash agent/vercel-build.sh",
+  "outputDirectory": "public",
+  "crons": [{ "path": "/api/refresh", "schedule": "0 14 * * 3" }]
 }
