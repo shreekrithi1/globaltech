@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>GlobalTech · Tech events around the world</title>
+  <meta name="description" content="A living map of tech events worldwide — conferences, meetups and hackathons on Luma, Eventbrite and beyond. Updated weekly." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2214%22 fill=%22%235cf2c0%22/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="vendor/maplibre-gl.css" rel="stylesheet" />
+  <link href="styles.css" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./">
+      <span class="logo" aria-hidden="true"><i></i></span>
+      <span>Global<b>Tech</b></span>
+    </a>
+    <div class="stats" id="stats"></div>
+    <button class="view-toggle" id="projToggle" title="Switch globe / flat map">◐ Globe</button>
+  </header>
+
+  <main class="layout">
+    <aside class="panel" id="panel">
+      <div class="grab" id="grab" aria-hidden="true"></div>
+      <section class="hero">
+        <p class="eyebrow">Updated weekly · <span id="updated"></span></p>
+        <h1>Tech events, <em>everywhere.</em></h1>
+        <p class="sub">Conferences, meetups and hackathons from today onward — pulled from Luma, Eventbrite and the web.</p>
+      </section>
+
+      <div class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 0 1 5.9 12.1l4.2 4.2-1.4 1.4-4.2-4.2A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>
+        <input id="q" type="search" placeholder="Search a city, country or event…" autocomplete="off" list="cityList" />
+        <datalist id="cityList"></datalist>
+        <button id="clear" class="clear" aria-label="Clear">×</button>
+      </div>
+
+      <div class="chips" id="cityChips"></div>
+
+      <div class="filters">
+        <div class="seg" role="group" aria-label="When">
+          <button data-when="all" class="on">Anytime</button>
+          <button data-when="week">This week</button>
+          <button data-when="month">30 days</button>
+        </div>
+        <label class="switch"><input type="checkbox" id="freeOnly" /><span></span>Free only</label>
+      </div>
+      <div class="seg small" role="group" aria-label="Source" id="srcSeg">
+        <button data-src="all" class="on">All</button>
+        <button data-src="luma">Luma</button>
+        <button data-src="eventbrite">Eventbrite</button>
+        <button data-src="web">Conferences</button>
+      </div>
+
+      <div class="list-head"><h2 id="listTitle">Upcoming worldwide</h2><span id="count"></span></div>
+      <div class="cards" id="cards"></div>
+      <footer class="foot">Data found by a weekly agent using the You.com Search API · Always confirm details on the event page.</footer>
+    </aside>
+
+    <section class="mapwrap">
+      <div id="map"></div>
+      <div class="legend">
+        <span><i class="dot free"></i>Free</span>
+        <span><i class="dot paid"></i>Paid</span>
+        <span><i class="dot cluster"></i>Cluster</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="vendor/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
