@@ -68,8 +68,8 @@
         if (!src && c.dataset.city !== c.dataset.place) src = await placePhoto(c.dataset.city);
         if (src) { img.src = src; img.hidden = false; }
       };
-      if (!ev) fill();
-      else ev.addEventListener("error", () => { ev.remove(); fill(); }, { once: true });
+      fill();
+      if (ev) ev.addEventListener("error", () => ev.remove(), { once: true });
     });
   }
 
@@ -77,8 +77,8 @@
     const [c1, c2] = PALETTES[hash(e.id || e.title) % PALETTES.length];
     const place = e.area && e.area !== e.city ? e.area : e.city;
     const art = `<div class="art" style="--c1:${c1}55;--c2:${c2}66"><span>${esc(place)}</span></div>`;
-    const ph = `<img class="ph" alt="" hidden loading="lazy" referrerpolicy="no-referrer">`;
-    const img = e.image ? `<img class="ev" src="${esc(e.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "";
+    const ph = `<img class="ph" alt="" hidden decoding="async" referrerpolicy="no-referrer">`;
+    const img = e.image ? `<img class="ev" src="${esc(e.image)}" alt="" decoding="async" referrerpolicy="no-referrer">` : "";
     return `<div class="cover" data-place="${esc(place)}" data-city="${esc(e.city)}">${art}${ph}${img}
       ${e.image ? "" : `<span class="credit">${esc(place)} · Wikimedia</span>`}
       <div class="date"><b>${d(e.start).getDate()}</b><small>${fmt(e.start, { month: "short" })}</small></div>
@@ -126,7 +126,7 @@
       el.addEventListener("mouseenter", () => highlight(el.dataset.id));
       el.addEventListener("mouseleave", () => highlight(null));
     });
-    const src = map.loaded && map.isStyleLoaded() && map.getSource("events");
+    let src = null; try { src = map.getSource && map.getSource("events"); } catch {}
     if (src) src.setData(toGeo(list));
     if (fly === true) flyTo(list);
   }
@@ -169,6 +169,7 @@
       { id: "borders", type: "line", source: "world", paint: { "line-color": "#2b3a66", "line-width": 0.6 } },
     ],
   };
+  window.gtMap = map;
   let usingLocal = false;
   const toLocal = () => { if (usingLocal || map.isStyleLoaded()) return; usingLocal = true; console.info("Using built-in basemap"); map.setStyle(LOCAL_STYLE); };
   map.on("error", (e) => { if (!map.isStyleLoaded() && /style|json|Failed to fetch|NetworkError/i.test(String(e?.error?.message || e?.error))) toLocal(); });
@@ -206,6 +207,7 @@
     try { map.setProjection({ type: "globe" }); } catch {}
     map.setSky?.({ "sky-color": "#070b16", "horizon-color": "#1a1f4a", "atmosphere-blend": 0.6 });
     map.addSource("events", { type: "geojson", data: toGeo(filtered()), cluster: true, clusterRadius: 44, clusterMaxZoom: 11 });
+    setTimeout(() => { try { map.getSource("events").setData(toGeo(filtered())); } catch {} }, 0);
     map.addLayer({ id: "cl-glow", type: "circle", source: "events", filter: ["has", "point_count"],
       paint: { "circle-color": "#ffb84d", "circle-opacity": 0.18, "circle-radius": ["step", ["get", "point_count"], 26, 10, 34, 40, 44] } });
     map.addLayer({ id: "cl", type: "circle", source: "events", filter: ["has", "point_count"],
