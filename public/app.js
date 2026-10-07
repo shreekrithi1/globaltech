@@ -103,7 +103,7 @@
   /* ---------- filtering ---------- */
   function filtered() {
     const t = todayISO();
-    const horizon = state.when === "week" ? 7 : state.when === "month" ? 30 : 1e5;
+    const horizon = state.when === "today" ? 0 : state.when === "week" ? 7 : state.when === "month" ? 30 : 1e5;
     const max = new Date(d(t).getTime() + horizon * 864e5).toISOString().slice(0, 10);
     const q = state.q.trim().toLowerCase();
     return state.all.filter((e) =>
@@ -472,6 +472,9 @@
   // dragging the map on a phone tucks the list away so the globe is usable
   map.on("dragstart", () => { if (isMobile() && innerHeight > 500 && !panel.classList.contains("min")) setSheet("min"); });
 
+  // shared with planner.js
+  window.TE = { state, esc, hhmm, fmt, d, todayISO, whenText, coverHTML, hydrateCovers, openDetail, setCity, speakerOpen,
+    get map() { return map; }, srcLabel };
   fetch("data/events.json", { cache: "no-cache" }).then((r) => r.json()).then((data) => {
     state.all = (data.events || []).filter((e) => Number.isFinite(e.lat) && Number.isFinite(e.lng));
     $("#updated").textContent = data.updated ? new Date(data.updated).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
@@ -479,5 +482,6 @@
     const p = new URLSearchParams(location.search).get("city");
     p ? setQuery(p) : render();
     const h = location.hash.slice(1); if (h && state.all.some((e) => e.id === h)) openDetail(h);
+    dispatchEvent(new CustomEvent("te:data"));
   }).catch(() => ($("#cards").innerHTML = `<div class="empty">Couldn’t load events.json</div>`));
 })();

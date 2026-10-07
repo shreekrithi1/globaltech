@@ -51,6 +51,7 @@
       <div class="filters">
         <div class="seg" role="group" aria-label="When">
           <button data-when="all" class="on">Anytime</button>
+          <button data-when="today">Today</button>
           <button data-when="week">This week</button>
           <button data-when="month">30 days</button>
         </div>
@@ -73,6 +74,7 @@
 
     <section class="mapwrap">
       <div id="map"></div>
+      <button class="fab" id="planBtn" aria-label="Plan my events" title="Plan my events"><span class="fab-plus">+</span><span class="fab-txt">Plan</span></button>
       <div class="legend">
         <span><i class="dot free"></i>Free</span>
         <span><i class="dot paid"></i>Paid</span>
@@ -80,6 +82,18 @@
       </div>
     </section>
   </main>
+
+  <div class="planner" id="planner" hidden role="dialog" aria-modal="true" aria-labelledby="planTitle">
+    <div class="psheet">
+      <header class="phead">
+        <button class="pback" id="pBack" aria-label="Back">←</button>
+        <div><p class="pstep" id="pStep">Step 1 of 3</p><h2 id="planTitle">Where are you?</h2></div>
+        <button class="dclose" id="pClose" aria-label="Close planner">×</button>
+      </header>
+      <div class="pbody" id="pBody"></div>
+      <footer class="pfoot" id="pFoot"></footer>
+    </div>
+  </div>
 
   <div class="detail" id="detail" hidden role="dialog" aria-modal="true" aria-labelledby="dtitle">
     <div class="dsheet">
@@ -90,5 +104,6 @@
 
   <script src="vendor/maplibre-gl.js"></script>
   <script src="app.js"></script>
+  <script src="planner.js"></script>
 </body>
 </html>
