@@ -49,11 +49,18 @@ def make_event(**kw) -> dict:
     e["image"] = e["image"] or ""
     e["host"] = e["host"] or ""
     e["sources"] = e["sources"] or [e["platform"]]
+    if e["lat"] is None and not e["online"]:
+        pass
     if not e["id"]:
         e["id"] = e["platform"][:3] + "-" + hashlib.sha1((e["url"] or e["title"]).encode()).hexdigest()[:10]
     if e["speaker"] is None:
         e["speaker"] = detect_speaker(e["title"] + " " + e["description"])
+    if HACK_RE.search(e["title"] + " " + " ".join(e["tags"])) and "Hackathon" not in e["tags"]:
+        e["tags"] = sorted(set(e["tags"]) | {"Hackathon"})
     return e
+
+
+HACK_RE = re.compile(r"\b(hackathon|hack ?day|hack ?night|hack ?week|buildathon|codeathon|game ?jam|datathon|ideathon|hack[-\s]?a[-\s]?thon)\b|\bhack\b(?!er)", re.I)
 
 
 # ---------------------------------------------------------------- speaker opportunities

@@ -2,14 +2,14 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   let spinning = true, idleT = null;
-  const state = { all: [], speakers: false, city: "", q: "", when: "all", free: false, src: "all", hot: null };
+  const state = { all: [], speakers: false, hack: false, city: "", q: "", when: "all", free: false, src: "all", hot: null };
   const PALETTES = [["#5cf2c0","#8b7cff"],["#ff6fb5","#8b7cff"],["#ffb84d","#ff6fb5"],["#5cc8ff","#5cf2c0"],["#8b7cff","#5cc8ff"]];
   const todayISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
   const esc = (s = "") => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
   const d = (iso) => new Date(iso + "T12:00:00");
   const fmt = (iso, o) => d(iso).toLocaleDateString(undefined, o);
-  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site", techweek: "SF Tech Week", gdg: "GDG", confstech: "confs.tech", sessionize: "Sessionize" };
+  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site", techweek: "SF Tech Week", gdg: "GDG", confstech: "confs.tech", sessionize: "Sessionize", devpost: "Devpost", partiful: "Partiful" };
   const hhmm = (t) => { if (!t) return ""; const [h, m] = t.split(":").map(Number); return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${h < 12 ? "am" : "pm"}`; };
   const PAGE = 120; let shown = PAGE;
 
@@ -91,7 +91,7 @@
     return `<article class="card" tabindex="0" role="button" aria-label="${esc(e.title)} details" data-id="${esc(e.id)}">
       ${coverHTML(e)}
       <div class="body">
-        <div class="meta"><span class="when">${whenText(e)}${e.time ? " · " + hhmm(e.time) + (e.endTime ? "–" + hhmm(e.endTime) : "") : ""}</span>·<span>${e.online ? "Online · " : ""}${esc(e.area && e.area !== e.city ? e.area + ", " + e.city : e.city + ", " + e.country)}</span></div>
+        <div class="meta"><span class="when">${whenText(e)}${e.time ? " · " + hhmm(e.time) + (e.endTime ? "–" + hhmm(e.endTime) : "") : ""}</span>·<span>${e.city === "Online" ? "Online" : (e.online ? "Online · " : "") + esc(e.area && e.area !== e.city ? e.area + ", " + e.city : [e.city, e.country].filter(Boolean).join(", "))}</span></div>
         ${e.host ? `<div class="host">by ${esc(e.host)}</div>` : ""}
         <h3>${esc(e.title)}</h3>
         ${e.description ? `<p>${esc(e.description)}</p>` : ""}
@@ -99,6 +99,9 @@
       </div></article>`;
   }
 
+  const HACK_RE = /\b(hackathon|hack ?day|hack ?night|hack ?week|buildathon|codeathon|game ?jam|datathon|ideathon)\b/i;
+  const isHack = (e) => (e._hack ??= (e.tags || []).includes("Hackathon") || e.platform === "devpost" || HACK_RE.test(e.title));
+  const onMap = (e) => Number.isFinite(e.lat) && Number.isFinite(e.lng);
   const speakerOpen = (e) => !!e.speaker && (!e.speaker.deadline || e.speaker.deadline >= todayISO());
   /* ---------- filtering ---------- */
   function filtered() {
@@ -111,6 +114,7 @@
       (!state.city || e.city === state.city) &&
       (!state.free || e.free) &&
       (!state.speakers || speakerOpen(e)) &&
+      (!state.hack || isHack(e)) &&
       (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite", "techweek", "gdg"].includes(e.platform))) &&
       (!q || [e.city, e.area, e.country, e.title, e.host, ...(e.tags || [])].join(" ").toLowerCase().includes(q))
     ).sort((a, b) => a.start.localeCompare(b.start));
@@ -151,7 +155,10 @@
     $("#cityList").innerHTML = top.map(([c]) => `<option value="${esc(c)}">`).join("");
     const gdgN = up.filter((e) => e.platform === "gdg").length;
     const spkN = up.filter(speakerOpen).length;
-    $("#cityChips").innerHTML = (spkN ? `<button class="chip spk-chip ${state.speakers ? "on" : ""}" data-spk="1">🎤 Speaker opportunities<small>${spkN}</small></button>` : "") + (gdgN ? `<button class="chip gdg-chip ${state.src === "gdg" ? "on" : ""}" data-gdg="1"><span class="gdot"><i></i><i></i><i></i><i></i></span>GDG events<small>${gdgN}</small></button>` : "") + top.slice(0, 14).map(([c, n]) => `<button class="chip" data-city="${esc(c)}">${esc(c)}<small>${n}</small></button>`).join("");
+    const hackN = up.filter(isHack).length;
+    $("#cityChips").innerHTML = (hackN ? `<button class="chip hack-chip ${state.hack ? "on" : ""}" data-hack="1">🛠️ Hackathons<small>${hackN}</small></button>` : "") + (spkN ? `<button class="chip spk-chip ${state.speakers ? "on" : ""}" data-spk="1">🎤 Speaker opportunities<small>${spkN}</small></button>` : "") + (gdgN ? `<button class="chip gdg-chip ${state.src === "gdg" ? "on" : ""}" data-gdg="1"><span class="gdot"><i></i><i></i><i></i><i></i></span>GDG events<small>${gdgN}</small></button>` : "") + top.slice(0, 14).map(([c, n]) => `<button class="chip" data-city="${esc(c)}">${esc(c)}<small>${n}</small></button>`).join("");
+    const hc = $("#cityChips .hack-chip");
+    if (hc) hc.onclick = () => { state.hack = !state.hack; hc.classList.toggle("on", state.hack); $("#hackOnly").checked = state.hack; render(); };
     const sc = $("#cityChips .spk-chip");
     if (sc) sc.onclick = () => { state.speakers = !state.speakers; sc.classList.toggle("on", state.speakers); $("#spkOnly").checked = state.speakers; render(); };
     const gc = $("#cityChips .gdg-chip");
@@ -214,14 +221,14 @@
 
   const toGeo = (list) => ({
     type: "FeatureCollection",
-    features: list.map((e) => ({ type: "Feature", geometry: { type: "Point", coordinates: [e.lng, e.lat] }, properties: { id: e.id, free: !!e.free } })),
+    features: list.filter(onMap).map((e) => ({ type: "Feature", geometry: { type: "Point", coordinates: [e.lng, e.lat] }, properties: { id: e.id, free: !!e.free } })),
   });
 
   function flyTo(list) {
     if (!state.q && !state.city) { spinning = true; return map.flyTo({ center: [map.getCenter().lng, 28], zoom: 2.15, speed: 0.9 }); }
     if (list.length && window.maplibregl && map.getCanvas) {
       const b = new maplibregl.LngLatBounds();
-      list.forEach((e) => b.extend([e.lng, e.lat]));
+      list.filter(onMap).forEach((e) => b.extend([e.lng, e.lat])); if (b.isEmpty()) return;
       const mob = innerWidth <= 860 && !(innerHeight <= 500 && innerWidth > innerHeight);
       const pad = mob ? { top: 60, left: 30, right: 30, bottom: Math.round(innerHeight * 0.46) + 20 } : 120;
       return map.fitBounds(b, { padding: pad, maxZoom: 10, duration: 1600 });
@@ -308,7 +315,7 @@
   let cityMarkers = [], cityGeo = { type: "FeatureCollection", features: [] };
   function cityGroups(list) {
     const by = {};
-    list.forEach((e) => (by[e.city] = by[e.city] || []).push(e));
+    list.filter(onMap).forEach((e) => (by[e.city] = by[e.city] || []).push(e));
     return Object.entries(by).map(([city, evs]) => {
       const med = (k) => { const v = evs.map((e) => e[k]).sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; };
       return { city, n: evs.length, free: evs.filter((e) => e.free).length, lng: med("lng"), lat: med("lat") };
@@ -380,12 +387,13 @@
     el.addEventListener("click", open);
     el.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); open(); } });
   }
-  const regLabel = { luma: "Register on Luma", eventbrite: "Get tickets on Eventbrite", meetup: "RSVP on Meetup", techweek: "RSVP via SF Tech Week", gdg: "RSVP on GDG", confstech: "Visit conference site", sessionize: "Open on Sessionize", web: "Visit official site" };
+  const regLabel = { luma: "Register on Luma", eventbrite: "Get tickets on Eventbrite", meetup: "RSVP on Meetup", techweek: "RSVP via SF Tech Week", gdg: "RSVP on GDG", confstech: "Visit conference site", sessionize: "Open on Sessionize", devpost: "Join on Devpost", web: "Visit official site" };
   function openDetail(id) {
     const e = state.all.find((x) => x.id === id); if (!e) return;
     const dlg = $("#detail");
     const when = whenText(e) + (e.time ? ` · ${hhmm(e.time)}${e.endTime ? "–" + hhmm(e.endTime) : ""}` : "");
-    const place = (e.online ? "Online event · hosted from " : "") + (e.venue ? e.venue + ", " : "") + (e.area && e.area !== e.city ? `${e.area}, ${e.city}, ${e.country}` : `${e.city}, ${e.country}`);
+    const where = [e.area && e.area !== e.city && e.area !== "Online" ? e.area : "", e.city !== "Online" ? e.city : "", e.country].filter(Boolean).join(", ");
+    const place = e.online ? (where ? `Online event · hosted from ${where}` : "Online event") : (e.venue ? e.venue + ", " : "") + where;
     dlg.querySelector(".dbody").innerHTML = `
       ${coverHTML(e)}
       <div class="dinner">
@@ -407,7 +415,8 @@
         <p class="dnote">Details come from the event page. Always confirm time and venue there before you go.</p>
       </div>`;
     hydrateCovers(dlg);
-    dlg.querySelector("#dmap").onclick = () => { closeDetail(); spinning = false; map.flyTo({ center: [e.lng, e.lat], zoom: 14, duration: 1600 }); highlight(e.id); };
+    if (!onMap(e)) dlg.querySelector("#dmap").remove();
+    else dlg.querySelector("#dmap").onclick = () => { closeDetail(); spinning = false; map.flyTo({ center: [e.lng, e.lat], zoom: 14, duration: 1600 }); highlight(e.id); };
     dlg.hidden = false; requestAnimationFrame(() => dlg.classList.add("open"));
     dlg.querySelector(".dclose").focus();
     try { history.replaceState(null, "", "#" + e.id.replace(/[^\w.~-]/g, "")); } catch {}
@@ -441,6 +450,7 @@
   $("#q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => setQuery(e.target.value), 280); });
   $("#clear").onclick = () => { setCity(""); setQuery(""); };
   $("#freeOnly").onchange = (e) => { state.free = e.target.checked; render(); };
+  $("#hackOnly").onchange = (e) => { state.hack = e.target.checked; $("#cityChips .hack-chip")?.classList.toggle("on", state.hack); render(); };
   $("#spkOnly").onchange = (e) => { state.speakers = e.target.checked; $("#cityChips .spk-chip")?.classList.toggle("on", state.speakers); render(); };
   document.querySelectorAll("[data-when]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-when]").forEach((x) => x.classList.toggle("on", x === b)); state.when = b.dataset.when; render();
@@ -476,7 +486,7 @@
   window.TE = { state, esc, hhmm, fmt, d, todayISO, whenText, coverHTML, hydrateCovers, openDetail, setCity, speakerOpen,
     get map() { return map; }, srcLabel };
   fetch("data/events.json", { cache: "no-cache" }).then((r) => r.json()).then((data) => {
-    state.all = (data.events || []).filter((e) => Number.isFinite(e.lat) && Number.isFinite(e.lng));
+    state.all = (data.events || []).filter((e) => e.start && e.title);
     $("#updated").textContent = data.updated ? new Date(data.updated).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
     renderStats();
     const p = new URLSearchParams(location.search).get("city");

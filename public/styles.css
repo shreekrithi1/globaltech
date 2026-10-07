@@ -418,3 +418,10 @@ body.zoomed .citylabel{display:none}
   .pnext{min-width:0;flex:1}
   .pfoot .ghost{flex:none}
 }
+
+.hack-chip{border-color:rgba(92,200,255,.5)}
+.hack-chip.on{background:rgba(92,200,255,.16);border-color:#5cc8ff}
+.hack-chip small{color:#5cc8ff!important}
+:root[data-theme="light"] .hack-chip small{color:#0369a1!important}
+.src.devpost{background:rgba(92,200,255,.14);color:#5cc8ff}
+:root[data-theme="light"] .src.devpost{color:#0369a1}

@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import DATA, REPORT, Geocoder, make_event, session, today  # noqa: E402
 from dedupe import dedupe  # noqa: E402
-from sources import confstech, gdg, techweek, youcom  # noqa: E402
+from sources import confstech, devpost, gdg, techweek, youcom  # noqa: E402
 
 
 def main() -> int:
@@ -49,11 +49,12 @@ def main() -> int:
     pruned = len(old) - len(kept_old)
     print(f"Loaded {len(old)} events · removed {pruned} that ended before {tday}")
 
-    wanted = {x.strip() for x in os.environ.get("SOURCES", "gdg,techweek,confstech,youcom").split(",") if x.strip()}
+    wanted = {x.strip() for x in os.environ.get("SOURCES", "gdg,techweek,confstech,devpost,youcom").split(",") if x.strip()}
     runners = {
         "gdg": lambda: gdg.fetch(s, geo, tday),
         "techweek": lambda: techweek.fetch(s, geo, tday),
         "confstech": lambda: confstech.fetch(s, geo, tday, [now.year, now.year + 1]),
+        "devpost": lambda: devpost.fetch(s, geo, tday),
         "youcom": lambda: youcom.fetch(s, geo, tday, now.strftime("%B"), now.year),
     }
     fresh, report = [], {"run": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "today": tday,
@@ -77,7 +78,7 @@ def main() -> int:
     # Official feeds (GDG, Tech Week, confs.tech) list every event, so a successful refresh replaces their old copy
     # (this also drops cancelled events). Search-found events are kept until they end, because a web search will
     # not surface every page every week; the de-duplicator merges them with any fresh copy.
-    official_refreshed = refreshed & {"gdg", "techweek", "confstech"}
+    official_refreshed = refreshed & {"gdg", "techweek", "confstech", "devpost"}
     carried = [e for e in kept_old if not (set(e.get("sources") or [e.get("platform")]) & official_refreshed)]
     merged, dupes = dedupe(fresh + carried)
     merged.sort(key=lambda e: (e["start"], e.get("time") or "", e["title"]))

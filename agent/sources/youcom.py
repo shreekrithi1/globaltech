@@ -16,14 +16,17 @@ from urllib.parse import urlsplit
 from common import Geocoder, jitter, make_event
 
 API = "https://ydc-index.io/v1/search"
-EVENT_HOSTS = ("lu.ma", "luma.com", "eventbrite.", "meetup.com", "sessionize.com")
+EVENT_HOSTS = ("lu.ma", "luma.com", "eventbrite.", "meetup.com", "sessionize.com", "devpost.com", "mlh.io", "partiful.com")
 
 CITIES = ["San Francisco", "New York", "Seattle", "Austin", "Los Angeles", "Boston", "Chicago", "Toronto", "Vancouver",
           "Mexico City", "São Paulo", "London", "Paris", "Berlin", "Amsterdam", "Lisbon", "Barcelona", "Madrid", "Stockholm",
           "Helsinki", "Zurich", "Munich", "Warsaw", "Dubai", "Tel Aviv", "Lagos", "Nairobi", "Cape Town", "Bangalore",
           "Mumbai", "Hyderabad", "Delhi", "Singapore", "Jakarta", "Tokyo", "Seoul", "Hong Kong", "Sydney", "Melbourne"]
-CITY_QUERIES = ["tech meetup {city}", "AI hackathon {city} {month} {year}", "startup event {city} {month} {year}",
+CITY_QUERIES = ["tech meetup {city}", "hackathon {city} {month} {year}", "startup event {city} {month} {year}",
                 "developer conference {city} {year}"]
+HACKATHON_QUERIES = ["hackathon {month} {year}", "AI hackathon {month} {year}", "in-person hackathon {year}",
+                     "student hackathon {month} {year}", "online hackathon {month} {year}", "MLH hackathon {year}",
+                     "web3 hackathon {year}", "hackathon prizes register {month} {year}"]
 SPEAKER_QUERIES = ["call for speakers tech conference {year}", "call for papers developer conference {month} {year}",
                    "CFP open AI conference {year}", "sessionize call for speakers {year}", "submit a talk meetup {month} {year}"]
 
@@ -58,6 +61,12 @@ def _is_event_page(url: str) -> bool:
         return "/events/" in p.path
     if "sessionize.com" in host:
         return bool(path) and "/" not in path
+    if host.endswith(".devpost.com") and host != "www.devpost.com":
+        return not path  # <name>.devpost.com is a hackathon home page
+    if "partiful.com" in host:
+        return path.startswith("e/")
+    if "mlh.io" in host:
+        return "/events" in p.path or "/seasons" in p.path
     return False
 
 
@@ -198,6 +207,12 @@ def fetch(s, geo: Geocoder, today: str, month: str, year: int) -> list[dict]:
                 u = (hit.get("url") or "").split("?")[0].split("#")[0]
                 if _is_event_page(u):
                     leads.setdefault(u, city)
+    for q in HACKATHON_QUERIES:
+        for hit in _search(s, key, q.format(month=month, year=year), per_query,
+                           ["lu.ma", "luma.com", "eventbrite.com", "devpost.com", "mlh.io", "partiful.com", "meetup.com"]):
+            u = (hit.get("url") or "").split("?")[0].split("#")[0]
+            if _is_event_page(u):
+                leads.setdefault(u, "")
     for q in SPEAKER_QUERIES:
         for hit in _search(s, key, q.format(month=month, year=year), per_query, None):
             u = (hit.get("url") or "").split("?")[0].split("#")[0]

@@ -16,7 +16,8 @@ Search any city, filter to **free** events, and jump straight to the **Luma / Ev
    - **Google Developer Groups** – every upcoming GDG event worldwide (gdg.community.dev)
    - **SF Tech Week** – the full tech-week.com calendar
    - **confs.tech** – developer conferences and **open calls for speakers**
-   - **You.com Search API** – finds Luma, Eventbrite, Meetup and Sessionize pages in ~40 tech hubs, then opens each page
+   - **Devpost** – every open or upcoming **hackathon** (in person on the map, online in the list)
+   - **You.com Search API** – finds Luma, Eventbrite, Meetup, Partiful, Devpost and Sessionize pages in ~40 tech hubs, plus hackathons and calls for speakers worldwide, then opens each page
      and keeps it only if it contains a real schema.org Event (or a Sessionize call for speakers) dated today or later.
    If a source fails, last week's events from it are kept.
 3. Removes duplicates (`agent/dedupe.py`): same canonical link (lu.ma = luma.com, Eventbrite/Meetup ids, tracking params

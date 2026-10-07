@@ -20,9 +20,9 @@ from urllib.parse import urlsplit
 from common import km
 
 # Higher = more trustworthy as the primary record.
-PRIORITY = {"gdg": 6, "techweek": 6, "confstech": 5, "luma": 4, "eventbrite": 4, "meetup": 4, "sessionize": 3, "web": 2, "youcom": 1}
+PRIORITY = {"devpost": 6, "gdg": 6, "techweek": 6, "confstech": 5, "luma": 4, "eventbrite": 4, "meetup": 4, "sessionize": 3, "web": 2, "youcom": 1}
 
-OFFICIAL = {"gdg", "techweek", "confstech"}
+OFFICIAL = {"gdg", "techweek", "confstech", "devpost"}
 
 STOP = {"the", "a", "an", "and", "of", "for", "in", "at", "on", "to", "with", "by", "x", "presents", "present", "meetup",
         "event", "events", "edition", "conference", "conf", "summit", "gdg", "google", "developer", "developers", "group",
