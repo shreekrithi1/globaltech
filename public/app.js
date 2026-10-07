@@ -22,11 +22,65 @@
     return `${fmt(e.start, { weekday: "short" })}, ${a}, ${d(e.start).getFullYear()}`;
   }
 
+  /* ---------- place photos (Wikipedia / Wikimedia Commons, free to reuse) ---------- */
+  const WIKI = {
+    "San Francisco": "San Francisco", "SOMA": "South of Market, San Francisco", "FiDi": "Financial District, San Francisco",
+    "Downtown": "Downtown San Francisco", "Mission": "Mission District, San Francisco", "Embarcadero": "Embarcadero (San Francisco)",
+    "Union Square": "Union Square, San Francisco", "Marina": "Marina District, San Francisco", "Dogpatch": "Dogpatch, San Francisco",
+    "Jackson Square": "Jackson Square, San Francisco", "Palo Alto": "Palo Alto, California", "North Beach": "North Beach, San Francisco",
+    "Civic Center": "Civic Center, San Francisco", "Mission Bay": "Mission Bay, San Francisco", "East Bay": "Oakland, California",
+    "Hayes Valley": "Hayes Valley, San Francisco", "Rincon Hill": "Rincon Hill, San Francisco", "South Beach": "South Beach, San Francisco",
+    "Stanford": "Stanford University", "Chinatown": "Chinatown, San Francisco", "Lower Nob Hill": "Nob Hill, San Francisco",
+    "Nob Hill": "Nob Hill, San Francisco", "Salesforce Park": "Salesforce Transit Center", "Mountain View": "Mountain View, California",
+    "Potrero Hill": "Potrero Hill, San Francisco", "Russian Hill": "Russian Hill, San Francisco", "Golden Gate Park": "Golden Gate Park",
+    "Presidio Heights": "Presidio of San Francisco", "Cow Hollow": "Cow Hollow, San Francisco", "Pacific Heights": "Pacific Heights, San Francisco",
+    "Castro": "Castro District, San Francisco", "Fisherman's Wharf": "Fisherman's Wharf, San Francisco", "Telegraph Hill": "Coit Tower",
+    "Alamo Square": "Painted ladies", "NOPA": "Alamo Square, San Francisco", "Design District": "Showplace Square",
+    "Haight Ashbury": "Haight-Ashbury", "Lower Haight": "Lower Haight, San Francisco", "Panhandle": "Panhandle (San Francisco)",
+    "Duboce Triangle": "Duboce Triangle, San Francisco", "Ocean Beach": "Ocean Beach, San Francisco", "San Mateo": "San Mateo, California",
+    "Hillsborough": "Hillsborough, California", "Las Vegas": "Las Vegas Strip", "Dubai": "Dubai", "Lisbon": "Lisbon",
+    "Helsinki": "Helsinki", "Bucharest": "Bucharest", "Turin": "Turin", "Lagos": "Lagos", "Cape Town": "Cape Town",
+    "Kigali": "Kigali", "Stockholm": "Stockholm", "Barcelona": "Barcelona",
+  };
+  const photoCache = new Map();
+  let PHOTOS = {};
+  const photosReady = fetch("data/photos.json").then((r) => r.json()).then((p) => (PHOTOS = p)).catch(() => {});
+  async function placePhoto(place) {
+    await photosReady;
+    if (PHOTOS[place]) return PHOTOS[place];
+    const title = WIKI[place] || place;
+    if (!photoCache.has(title)) {
+      photoCache.set(title, fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => { const src = j?.originalimage?.source || j?.thumbnail?.source; if (!src) return null;
+          return src.replace(/\/(\d+)px-/, "/960px-").replace(/\?.*$/, ""); })
+        .catch(() => null));
+    }
+    return await photoCache.get(title);
+  }
+  function hydrateCovers(root) {
+    root.querySelectorAll(".cover[data-place]:not([data-done])").forEach((c) => {
+      c.dataset.done = "1";
+      const img = c.querySelector("img.ph");
+      const ev = c.querySelector("img.ev");
+      const fill = async () => {
+        let src = await placePhoto(c.dataset.place);
+        if (!src && c.dataset.city !== c.dataset.place) src = await placePhoto(c.dataset.city);
+        if (src) { img.src = src; img.hidden = false; }
+      };
+      if (!ev) fill();
+      else ev.addEventListener("error", () => { ev.remove(); fill(); }, { once: true });
+    });
+  }
+
   function coverHTML(e) {
     const [c1, c2] = PALETTES[hash(e.id || e.title) % PALETTES.length];
-    const art = `<div class="art" style="--c1:${c1}55;--c2:${c2}66"><span>${esc(e.city)}</span></div>`;
-    const img = e.image ? `<img src="${esc(e.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
-    return `<div class="cover">${art}${img}
+    const place = e.area && e.area !== e.city ? e.area : e.city;
+    const art = `<div class="art" style="--c1:${c1}55;--c2:${c2}66"><span>${esc(place)}</span></div>`;
+    const ph = `<img class="ph" alt="" hidden loading="lazy" referrerpolicy="no-referrer">`;
+    const img = e.image ? `<img class="ev" src="${esc(e.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "";
+    return `<div class="cover" data-place="${esc(place)}" data-city="${esc(e.city)}">${art}${ph}${img}
+      ${e.image ? "" : `<span class="credit">${esc(place)} · Wikimedia</span>`}
       <div class="date"><b>${d(e.start).getDate()}</b><small>${fmt(e.start, { month: "short" })}</small></div>
       <span class="badge ${e.free ? "free" : "paid"}">${e.free ? "FREE" : esc(e.price && e.price !== "Paid" ? e.price : "Paid")}</span></div>`;
   }
@@ -66,6 +120,7 @@
     $("#cards").innerHTML = list.length ? list.slice(0, shown).map(cardHTML).join("") + (list.length > shown ? `<button class="more" id="more">Show more (${list.length - shown} left)</button>` : "") :
       `<div class="empty">No upcoming events found${q ? ` for “${esc(q)}”` : ""} yet.<br>The agent searches new cities every week.</div>`;
     const mb = $("#more"); if (mb) mb.onclick = () => { shown += PAGE * 2; render("more"); };
+    hydrateCovers($("#cards"));
     $("#cards").querySelectorAll(".card").forEach((el, i) => {
       el.style.animationDelay = `${Math.min(i, 12) * 35}ms`;
       el.addEventListener("mouseenter", () => highlight(el.dataset.id));
@@ -117,7 +172,7 @@
   let usingLocal = false;
   const toLocal = () => { if (usingLocal || map.isStyleLoaded()) return; usingLocal = true; console.info("Using built-in basemap"); map.setStyle(LOCAL_STYLE); };
   map.on("error", (e) => { if (!map.isStyleLoaded() && /style|json|Failed to fetch|NetworkError/i.test(String(e?.error?.message || e?.error))) toLocal(); });
-  setTimeout(toLocal, 5000);
+  setTimeout(toLocal, 20000);
   } catch (err) {
     console.warn("Map unavailable:", err);
     document.getElementById("map").innerHTML = '<div style="display:grid;place-items:center;height:100%;color:#8f9cc0">Map couldn\u2019t load \u2014 events are listed on the left.</div>';
@@ -175,6 +230,7 @@
       const evs = state.all.filter((e) => ids.includes(e.id));
       new maplibregl.Popup({ offset: 14, maxWidth: "280px" }).setLngLat(ev.features[0].geometry.coordinates)
         .setHTML(`<div class="pop">${evs.map(cardHTML).join("")}</div>`).addTo(map);
+      setTimeout(() => document.querySelectorAll(".maplibregl-popup").forEach(hydrateCovers), 0);
       const card = document.querySelector(`#cards .card[data-id="${ids[0]}"]`);
       if (card) { card.scrollIntoView({ behavior: "smooth", block: "center" }); card.classList.add("hot"); setTimeout(() => card.classList.remove("hot"), 1600); }
     });

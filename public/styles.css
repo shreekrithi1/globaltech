@@ -133,3 +133,12 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--mint),var(--viole
 .src.techweek{background:rgba(92,242,192,.14);color:var(--mint)}
 .more{width:100%;padding:12px;border-radius:12px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-size:14px}
 .more:hover{border-color:var(--violet)}
+
+.cover .art{z-index:0}
+.cover img.ph,.cover img.ev{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.cover img.ph{filter:saturate(1.05) brightness(.82)}
+.cover::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(7,11,22,.35) 0%,transparent 35%,transparent 60%,rgba(7,11,22,.55) 100%);pointer-events:none}
+.cover .date,.cover .badge,.cover .credit{z-index:2}
+.cover .credit{display:none;position:absolute;left:12px;bottom:10px;font-size:11px;color:rgba(255,255,255,.85);text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.cover img.ph:not([hidden]) ~ .credit{display:block}
+.card:hover .cover img.ph{transform:scale(1.05);transition:transform .5s}
