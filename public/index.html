@@ -6,6 +6,12 @@
   <title>TechEvents · Tech events around the world</title>
   <meta name="description" content="A living map of tech events worldwide — conferences, meetups and hackathons on Luma, Eventbrite, GDG and beyond. Updated weekly." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2214%22 fill=%22%235cf2c0%22/%3E%3C/svg%3E" />
+  <script>
+    (function () { var t; try { t = localStorage.getItem("te-theme"); } catch (e) {}
+      if (!t) t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", t); })();
+  </script>
+  <meta name="theme-color" content="#070b16" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -20,6 +26,7 @@
     </a>
     <a class="powered" href="https://mnemoiq.com" target="_blank" rel="noopener">powered by <b>mnemoIQ.com</b></a>
     <div class="stats" id="stats"></div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Switch to light mode" title="Light / dark mode">☀</button>
     <button class="view-toggle" id="projToggle" title="Switch globe / flat map">◐ Globe</button>
   </header>
 

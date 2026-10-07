@@ -174,27 +174,30 @@
   }
 
   /* ---------- map ---------- */
+  const theme = () => document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const BASEMAP = { dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json", light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json" };
   let map = { getSource: () => null, getLayer: () => null, on() {}, once() {}, flyTo() {}, fitBounds() {}, easeTo() {} };
+  const FREE_C = () => (theme() === "light" ? "#0ea371" : "#5cf2c0");
+  const PAID_C = () => (theme() === "light" ? "#5b4bf0" : "#8b7cff");
+  let usingLocal = false;
+  const localStyle = () => ({
+    version: 8, name: "local",
+    sources: { world: { type: "geojson", data: "data/world.geojson" } },
+    layers: [
+      { id: "bg", type: "background", paint: { "background-color": theme() === "light" ? "#dfe8f5" : "#0a1022" } },
+      { id: "land", type: "fill", source: "world", paint: { "fill-color": theme() === "light" ? "#ffffff" : "#16203d" } },
+      { id: "borders", type: "line", source: "world", paint: { "line-color": theme() === "light" ? "#c3cde0" : "#2b3a66", "line-width": 0.6 } },
+    ],
+  });
   try { map = new maplibregl.Map({
     container: "map",
-    style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+    style: BASEMAP[theme()],
     localIdeographFontFamily: "sans-serif",
     center: [-30, 28], zoom: 2.15, attributionControl: { compact: true },
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-  // Built-in fallback basemap (no external servers) if the online basemap can't load
-  const LOCAL_STYLE = {
-    version: 8, name: "local",
-    sources: { world: { type: "geojson", data: "data/world.geojson" } },
-    layers: [
-      { id: "bg", type: "background", paint: { "background-color": "#0a1022" } },
-      { id: "land", type: "fill", source: "world", paint: { "fill-color": "#16203d" } },
-      { id: "borders", type: "line", source: "world", paint: { "line-color": "#2b3a66", "line-width": 0.6 } },
-    ],
-  };
   window.gtMap = map;
-  let usingLocal = false;
-  const toLocal = () => { if (usingLocal || map.isStyleLoaded()) return; usingLocal = true; console.info("Using built-in basemap"); map.setStyle(LOCAL_STYLE); };
+  const toLocal = () => { if (usingLocal || map.isStyleLoaded()) return; usingLocal = true; console.info("Using built-in basemap"); map.setStyle(localStyle()); };
   map.on("error", (e) => { if (!map.isStyleLoaded() && /style|json|Failed to fetch|NetworkError/i.test(String(e?.error?.message || e?.error))) toLocal(); });
   setTimeout(toLocal, 20000);
   } catch (err) {
@@ -229,17 +232,19 @@
 
   map.on("style.load", () => {
     if (map.getSource("events")) return;
-    try { map.setProjection({ type: "globe" }); } catch {}
-    map.setSky?.({ "sky-color": "#070b16", "horizon-color": "#1a1f4a", "atmosphere-blend": 0.6 });
+    try { map.setProjection({ type: globe ? "globe" : "mercator" }); } catch {}
+    map.setSky?.(theme() === "light"
+      ? { "sky-color": "#f3f5fa", "horizon-color": "#c9d6ef", "atmosphere-blend": 0.5 }
+      : { "sky-color": "#070b16", "horizon-color": "#1a1f4a", "atmosphere-blend": 0.6 });
     map.addSource("events", { type: "geojson", data: toGeo(filtered()), cluster: true, clusterRadius: 44, clusterMaxZoom: 11 });
     setTimeout(() => { try { map.getSource("events").setData(toGeo(filtered())); } catch {} }, 0);
     map.addLayer({ id: "cl-glow", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["has", "point_count"],
       paint: { "circle-color": "#ffb84d", "circle-opacity": 0.18, "circle-radius": ["step", ["get", "point_count"], 26, 10, 34, 40, 44] } });
     map.addLayer({ id: "cl", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["has", "point_count"],
-      paint: { "circle-color": "#ffb84d", "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 40, 26], "circle-stroke-width": 2, "circle-stroke-color": "#070b16" } });
+      paint: { "circle-color": "#ffb84d", "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 40, 26], "circle-stroke-width": 2, "circle-stroke-color": theme() === "light" ? "#ffffff" : "#070b16" } });
     if (map.getStyle().glyphs) map.addLayer({ id: "cl-n", minzoom: CITY_ZOOM, type: "symbol", source: "events", filter: ["has", "point_count"],
       layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": ["Montserrat Medium"], "text-size": 13 }, paint: { "text-color": "#1a1200" } });
-    const col = ["case", ["get", "free"], "#5cf2c0", "#8b7cff"];
+    const col = ["case", ["get", "free"], FREE_C(), PAID_C()];
     map.addLayer({ id: "pt-glow", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["!", ["has", "point_count"]],
       paint: { "circle-color": col, "circle-radius": 18, "circle-opacity": 0.22, "circle-blur": 0.6 } });
     map.addLayer({ id: "pt", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["!", ["has", "point_count"]],
@@ -325,7 +330,7 @@
   function addCityLayers() {
     if (map.getSource("cities")) return;
     map.addSource("cities", { type: "geojson", data: cityGeo });
-    const col = ["case", [">", ["get", "free"], 0], "#5cf2c0", "#8b7cff"];
+    const col = ["case", [">", ["get", "free"], 0], FREE_C(), PAID_C()];
     const r = ["interpolate", ["linear"], ["get", "n"], 1, 4.5, 10, 7, 100, 10, 1000, 14];
     map.addLayer({ id: "city-glow", type: "circle", source: "cities", maxzoom: CITY_ZOOM,
       paint: { "circle-color": col, "circle-opacity": 0.25, "circle-blur": 0.8, "circle-radius": ["*", r, 2.4], "circle-pitch-alignment": "viewport" } });
@@ -378,7 +383,7 @@
     dlg.querySelector(".dbody").innerHTML = `
       ${coverHTML(e)}
       <div class="dinner">
-        <div class="dtags"><span class="src ${esc(e.platform)}">${srcLabel[e.platform] || "Web"}</span>${(e.tags || []).filter((t) => t !== e.area && t !== "SF Tech Week").slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+        <div class="dtags"><span class="src ${esc(e.platform)}">${srcLabel[e.platform] || "Web"}</span>${(e.tags || []).filter((t) => t !== e.area && t !== "SF Tech Week" && t !== (srcLabel[e.platform] || "")).slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
         <h2 id="dtitle">${esc(e.title)}</h2>
         <dl class="facts">
           <div><dt>When</dt><dd>${when}</dd></div>
@@ -406,6 +411,22 @@
   }
   $("#detail").addEventListener("click", (ev) => { if (ev.target.id === "detail" || ev.target.closest(".dclose")) closeDetail(); });
   addEventListener("keydown", (k) => { if (k.key === "Escape" && !$("#detail").hidden) closeDetail(); });
+
+  /* ---------- light / dark ---------- */
+  function paintToggle() {
+    const t = theme(), b = $("#themeToggle");
+    b.textContent = t === "light" ? "☾" : "☀";
+    b.setAttribute("aria-label", t === "light" ? "Switch to dark mode" : "Switch to light mode");
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "light" ? "#ffffff" : "#070b16");
+  }
+  paintToggle();
+  $("#themeToggle").onclick = () => {
+    const next = theme() === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("te-theme", next); } catch {}
+    paintToggle();
+    if (map.setStyle) map.setStyle(usingLocal ? localStyle() : BASEMAP[next]);
+  };
 
   /* ---------- UI wiring ---------- */
   let t;
