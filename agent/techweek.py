@@ -22,7 +22,7 @@ def _jitter(key, r):
 
 def fetch(city="sf", today: dt.date | None = None) -> list[dict]:
     today = today or dt.date.today()
-    s = requests.Session(); s.headers["User-Agent"] = "Mozilla/5.0 GlobalTechEventsBot"
+    s = requests.Session(); s.headers["User-Agent"] = "Mozilla/5.0 TechEventsBot"
     first = s.post(API, json={"0": _q(city, None, 1)}, timeout=30).json()[0]["result"]["data"]
     first = first.get("json", first)
     days = [d for ed in first.get("editions", []) for d in ed.get("days", []) if d >= today.isoformat()]

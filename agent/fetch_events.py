@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Weekly GlobalTech events agent.
+"""Weekly TechEvents agent.
 
 1. Uses the You.com Search API to discover tech-event pages on Luma and
    Eventbrite (plus major conferences) for a list of world cities.
@@ -29,7 +29,7 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "public" / "data" / "events.json"
 YDC_URL = "https://ydc-index.io/v1/search"
-UA = {"User-Agent": "Mozilla/5.0 (GlobalTechEventsBot; +https://github.com/shreekrithi1/globaltech)"}
+UA = {"User-Agent": "Mozilla/5.0 (TechEventsBot; +https://github.com/shreekrithi1/globaltech)"}
 
 # city -> (country, lat, lng) — also used as geocode fallback
 CITIES = {
@@ -224,6 +224,16 @@ def main() -> int:
         print(f"• SF Tech Week: {len(tw)} events")
     except Exception as exc:  # keep the weekly run alive if tech-week changes
         print(f"  ! tech-week fetch failed: {exc}", file=sys.stderr)
+
+    try:
+        import gdg
+        g = gdg.fetch(now)
+        by_url = {u: e for u, e in by_url.items() if e.get("platform") != "gdg"}
+        for ev in g:
+            by_url[ev["url"]] = ev
+        print(f"• GDG: {len(g)} events")
+    except Exception as exc:
+        print(f"  ! GDG fetch failed: {exc}", file=sys.stderr)
 
     events = [e for e in by_url.values() if (e.get("end") or e["start"]) >= now.isoformat()]
     events.sort(key=lambda e: (e["start"], e["title"]))

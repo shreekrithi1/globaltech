@@ -1,4 +1,4 @@
-# GlobalTech 🌍 — tech events around the world
+# TechEvents 🌍 — tech events around the world
 
 A live, map-first directory of upcoming tech events (conferences, meetups, hackathons) worldwide.
 Search any city, filter to **free** events, and jump straight to the **Luma / Eventbrite** page to register.
@@ -11,7 +11,8 @@ Search any city, filter to **free** events, and jump straight to the **Luma / Ev
 ## Weekly agent
 `agent/fetch_events.py` runs every Monday via GitHub Actions (`.github/workflows/weekly-events.yml`):
 
-1. Queries the **You.com Search API** for Luma, Eventbrite and Meetup tech events in ~30 world cities
+1. Pulls every upcoming **Google Developer Groups** event worldwide (gdg.community.dev) and the full **SF Tech Week** calendar
+2. Queries the **You.com Search API** for Luma, Eventbrite and Meetup tech events in ~30 world cities
 2. Opens each event page and reads its schema.org `Event` data → title, dates, venue coordinates, cover image, price
 3. Merges into `public/data/events.json`, removes ended events, and commits the file
 

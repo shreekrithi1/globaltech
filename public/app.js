@@ -1,4 +1,4 @@
-/* GlobalTech — map + list of upcoming tech events (data/events.json) */
+/* TechEvents — map + list of upcoming tech events (data/events.json) */
 (() => {
   const $ = (s) => document.querySelector(s);
   let spinning = true, idleT = null;
@@ -9,7 +9,7 @@
   const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
   const d = (iso) => new Date(iso + "T12:00:00");
   const fmt = (iso, o) => d(iso).toLocaleDateString(undefined, o);
-  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site", techweek: "SF Tech Week" };
+  const srcLabel = { luma: "Luma", eventbrite: "Eventbrite", meetup: "Meetup", web: "Official site", techweek: "SF Tech Week", gdg: "GDG" };
   const hhmm = (t) => { if (!t) return ""; const [h, m] = t.split(":").map(Number); return `${((h + 11) % 12) + 1}${m ? ":" + String(m).padStart(2, "0") : ""}${h < 12 ? "am" : "pm"}`; };
   const PAGE = 120; let shown = PAGE;
 
@@ -90,7 +90,7 @@
     return `<article class="card" tabindex="0" role="button" aria-label="${esc(e.title)} details" data-id="${esc(e.id)}">
       ${coverHTML(e)}
       <div class="body">
-        <div class="meta"><span class="when">${whenText(e)}${e.time ? " · " + hhmm(e.time) + (e.endTime ? "–" + hhmm(e.endTime) : "") : ""}</span>·<span>${esc(e.area && e.area !== e.city ? e.area + ", " + e.city : e.city + ", " + e.country)}</span></div>
+        <div class="meta"><span class="when">${whenText(e)}${e.time ? " · " + hhmm(e.time) + (e.endTime ? "–" + hhmm(e.endTime) : "") : ""}</span>·<span>${e.online ? "Online · " : ""}${esc(e.area && e.area !== e.city ? e.area + ", " + e.city : e.city + ", " + e.country)}</span></div>
         ${e.host ? `<div class="host">by ${esc(e.host)}</div>` : ""}
         <h3>${esc(e.title)}</h3>
         ${e.description ? `<p>${esc(e.description)}</p>` : ""}
@@ -108,7 +108,7 @@
       (e.end || e.start) >= t && e.start <= max &&
       (!state.city || e.city === state.city) &&
       (!state.free || e.free) &&
-      (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite", "techweek"].includes(e.platform))) &&
+      (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite", "techweek", "gdg"].includes(e.platform))) &&
       (!q || [e.city, e.area, e.country, e.title, e.host, ...(e.tags || [])].join(" ").toLowerCase().includes(q))
     ).sort((a, b) => a.start.localeCompare(b.start));
   }
@@ -146,8 +146,11 @@
     up.forEach((e) => (cities[e.city] = (cities[e.city] || 0) + 1));
     const top = Object.entries(cities).sort((a, b) => b[1] - a[1]);
     $("#cityList").innerHTML = top.map(([c]) => `<option value="${esc(c)}">`).join("");
-    $("#cityChips").innerHTML = top.slice(0, 14).map(([c, n]) => `<button class="chip" data-city="${esc(c)}">${esc(c)}<small>${n}</small></button>`).join("");
-    $("#cityChips").querySelectorAll(".chip").forEach((b) => b.onclick = () => setCity(state.city === b.dataset.city ? "" : b.dataset.city));
+    const gdgN = up.filter((e) => e.platform === "gdg").length;
+    $("#cityChips").innerHTML = (gdgN ? `<button class="chip gdg-chip ${state.src === "gdg" ? "on" : ""}" data-gdg="1"><span class="gdot"><i></i><i></i><i></i><i></i></span>GDG events<small>${gdgN}</small></button>` : "") + top.slice(0, 14).map(([c, n]) => `<button class="chip" data-city="${esc(c)}">${esc(c)}<small>${n}</small></button>`).join("");
+    const gc = $("#cityChips .gdg-chip");
+    if (gc) gc.onclick = () => setSrc(state.src === "gdg" ? "all" : "gdg");
+    $("#cityChips").querySelectorAll(".chip:not(.gdg-chip)").forEach((b) => b.onclick = () => setCity(state.city === b.dataset.city ? "" : b.dataset.city));
   }
 
   function setQuery(v) {
@@ -210,7 +213,7 @@
     if (list.length && window.maplibregl && map.getCanvas) {
       const b = new maplibregl.LngLatBounds();
       list.forEach((e) => b.extend([e.lng, e.lat]));
-      const mob = innerWidth <= 860;
+      const mob = innerWidth <= 860 && !(innerHeight <= 500 && innerWidth > innerHeight);
       const pad = mob ? { top: 60, left: 30, right: 30, bottom: Math.round(innerHeight * 0.46) + 20 } : 120;
       return map.fitBounds(b, { padding: pad, maxZoom: 10, duration: 1600 });
     }
@@ -244,6 +247,7 @@
     map.addLayer({ id: "pt-hot", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["==", ["get", "id"], ""],
       paint: { "circle-color": "transparent", "circle-radius": 16, "circle-stroke-width": 3, "circle-stroke-color": "#fff" } });
 
+    addCityLayers();
     map.on("click", "cl", async (ev) => {
       const f = ev.features[0];
       const z = await map.getSource("events").getClusterExpansionZoom(f.properties.cluster_id);
@@ -287,26 +291,72 @@
 
 
   /* ---------- city markers on the globe ---------- */
-  const CITY_ZOOM = 7.5;
-  let cityMarkers = [];
-  function renderCityMarkers(list) {
-    if (!window.maplibregl || !map.getCanvas) return;
-    cityMarkers.forEach((m) => m.remove()); cityMarkers = [];
+  // Every city is a dot drawn by the map itself (fast, stays glued to the globe).
+  // Only the busiest cities also get a floating label.
+  const CITY_ZOOM = 7.5, LABELS = innerWidth <= 860 ? 8 : 14;
+  let cityMarkers = [], cityGeo = { type: "FeatureCollection", features: [] };
+  function cityGroups(list) {
     const by = {};
     list.forEach((e) => (by[e.city] = by[e.city] || []).push(e));
-    Object.entries(by).forEach(([city, evs]) => {
+    return Object.entries(by).map(([city, evs]) => {
       const med = (k) => { const v = evs.map((e) => e[k]).sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; };
-      const free = evs.filter((e) => e.free).length;
+      return { city, n: evs.length, free: evs.filter((e) => e.free).length, lng: med("lng"), lat: med("lat") };
+    }).sort((a, b) => b.n - a.n);
+  }
+  function renderCityMarkers(list) {
+    if (!window.maplibregl || !map.getCanvas) return;
+    const groups = cityGroups(list);
+    cityGeo = { type: "FeatureCollection", features: groups.map((g) => ({ type: "Feature", geometry: { type: "Point", coordinates: [g.lng, g.lat] },
+      properties: { city: g.city, n: g.n, free: g.free, on: g.city === state.city } })) };
+    try { map.getSource("cities")?.setData(cityGeo); } catch {}
+    cityMarkers.forEach((m) => m.remove()); cityMarkers = [];
+    const labelled = groups.slice(0, LABELS);
+    if (state.city && !labelled.some((g) => g.city === state.city)) { const sel = groups.find((g) => g.city === state.city); if (sel) labelled.push(sel); }
+    labelled.forEach((g) => {
       const el = document.createElement("button");
-      el.className = "citymark" + (state.city === city ? " on" : "");
-      el.setAttribute("aria-label", `${city}: ${evs.length} events`);
-      el.innerHTML = `<i class="pulse"></i><i class="core ${free ? "has-free" : ""}"></i><span class="lbl"><b>${esc(city)}</b><small>${evs.length.toLocaleString()} event${evs.length === 1 ? "" : "s"}${free ? ` · ${free} free` : ""}</small></span>`;
-      el.addEventListener("click", (ev) => { ev.stopPropagation(); setCity(city); });
-      cityMarkers.push(new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([med("lng"), med("lat")]).addTo(map));
+      el.className = "citylabel" + (state.city === g.city ? " on" : "");
+      el.setAttribute("aria-label", `${g.city}: ${g.n} events`);
+      el.innerHTML = `<b>${esc(g.city)}</b><small>${g.n.toLocaleString()} event${g.n === 1 ? "" : "s"}${g.free ? ` · ${g.free} free` : ""}</small>`;
+      el.addEventListener("click", (ev) => { ev.stopPropagation(); setCity(g.city); });
+      cityMarkers.push(new maplibregl.Marker({ element: el, anchor: "left", offset: [12, 0], opacity: "1", opacityWhenCovered: "0" }).setLngLat([g.lng, g.lat]).addTo(map));
     });
     toggleCityMarkers();
   }
+  function addCityLayers() {
+    if (map.getSource("cities")) return;
+    map.addSource("cities", { type: "geojson", data: cityGeo });
+    const col = ["case", [">", ["get", "free"], 0], "#5cf2c0", "#8b7cff"];
+    const r = ["interpolate", ["linear"], ["get", "n"], 1, 4.5, 10, 7, 100, 10, 1000, 14];
+    map.addLayer({ id: "city-glow", type: "circle", source: "cities", maxzoom: CITY_ZOOM,
+      paint: { "circle-color": col, "circle-opacity": 0.25, "circle-blur": 0.8, "circle-radius": ["*", r, 2.4], "circle-pitch-alignment": "viewport" } });
+    map.addLayer({ id: "city-dot", type: "circle", source: "cities", maxzoom: CITY_ZOOM,
+      paint: { "circle-color": col, "circle-radius": r, "circle-stroke-width": ["case", ["get", "on"], 3, 1.5], "circle-stroke-color": "#ffffff", "circle-pitch-alignment": "viewport" } });
+    const tip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12, className: "citytip" });
+    map.on("mouseenter", "city-dot", (ev) => {
+      map.getCanvas().style.cursor = "pointer";
+      const p = ev.features[0].properties;
+      tip.setLngLat(ev.features[0].geometry.coordinates).setHTML(`<b>${esc(p.city)}</b><br><small>${p.n} event${p.n == 1 ? "" : "s"}${p.free > 0 ? ` · ${p.free} free` : ""}</small>`).addTo(map);
+    });
+    map.on("mouseleave", "city-dot", () => { map.getCanvas().style.cursor = ""; tip.remove(); });
+    map.on("click", "city-dot", (ev) => { tip.remove(); setCity(ev.features[0].properties.city); });
+  }
+  // hide labels that would overlap a busier city's label
+  let declutterQueued = false;
+  function declutter() {
+    declutterQueued = false;
+    const kept = [];
+    cityMarkers.forEach((m) => {
+      const el = m.getElement(); el.style.visibility = "";
+      const r = el.getBoundingClientRect();
+      if (!r.width || getComputedStyle(el).opacity === "0") return;
+      const hit = kept.some((k) => !(r.right < k.left || r.left > k.right || r.bottom < k.top || r.top > k.bottom));
+      if (hit && !el.classList.contains("on")) el.style.visibility = "hidden"; else kept.push(r);
+    });
+  }
+  const queueDeclutter = () => { if (!declutterQueued) { declutterQueued = true; requestAnimationFrame(declutter); } };
+  map.on("move", queueDeclutter);
   function toggleCityMarkers() {
+    queueDeclutter();
     const z = map.getZoom ? map.getZoom() : 0;
     document.body.classList.toggle("zoomed", z >= CITY_ZOOM);
   }
@@ -319,12 +369,12 @@
     el.addEventListener("click", open);
     el.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); open(); } });
   }
-  const regLabel = { luma: "Register on Luma", eventbrite: "Get tickets on Eventbrite", meetup: "RSVP on Meetup", techweek: "RSVP via SF Tech Week", web: "Visit official site" };
+  const regLabel = { luma: "Register on Luma", eventbrite: "Get tickets on Eventbrite", meetup: "RSVP on Meetup", techweek: "RSVP via SF Tech Week", gdg: "RSVP on GDG", web: "Visit official site" };
   function openDetail(id) {
     const e = state.all.find((x) => x.id === id); if (!e) return;
     const dlg = $("#detail");
     const when = whenText(e) + (e.time ? ` · ${hhmm(e.time)}${e.endTime ? "–" + hhmm(e.endTime) : ""}` : "");
-    const place = e.area && e.area !== e.city ? `${e.area}, ${e.city}, ${e.country}` : `${e.city}, ${e.country}`;
+    const place = (e.online ? "Online event · hosted from " : "") + (e.venue ? e.venue + ", " : "") + (e.area && e.area !== e.city ? `${e.area}, ${e.city}, ${e.country}` : `${e.city}, ${e.country}`);
     dlg.querySelector(".dbody").innerHTML = `
       ${coverHTML(e)}
       <div class="dinner">
@@ -365,9 +415,13 @@
   document.querySelectorAll("[data-when]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-when]").forEach((x) => x.classList.toggle("on", x === b)); state.when = b.dataset.when; render();
   });
-  document.querySelectorAll("[data-src]").forEach((b) => b.onclick = () => {
-    document.querySelectorAll("[data-src]").forEach((x) => x.classList.toggle("on", x === b)); state.src = b.dataset.src; render();
-  });
+  function setSrc(src) {
+    state.src = src;
+    document.querySelectorAll("[data-src]").forEach((x) => x.classList.toggle("on", x.dataset.src === src));
+    const gc = $("#cityChips .gdg-chip"); if (gc) gc.classList.toggle("on", src === "gdg");
+    render();
+  }
+  document.querySelectorAll("[data-src]").forEach((b) => b.onclick = () => setSrc(b.dataset.src));
   const panel = $("#panel");
   const isMobile = () => innerWidth <= 860;
   function setSheet(mode) { // "half" | "full" | "min"
@@ -386,7 +440,7 @@
     setSheet(dy < 0 ? (cur === "min" ? "half" : "full") : (cur === "full" ? "half" : "min"));
   });
   // dragging the map on a phone tucks the list away so the globe is usable
-  map.on("dragstart", () => { if (isMobile() && !panel.classList.contains("min")) setSheet("min"); });
+  map.on("dragstart", () => { if (isMobile() && innerHeight > 500 && !panel.classList.contains("min")) setSheet("min"); });
 
   fetch("data/events.json", { cache: "no-cache" }).then((r) => r.json()).then((data) => {
     state.all = (data.events || []).filter((e) => Number.isFinite(e.lat) && Number.isFinite(e.lng));

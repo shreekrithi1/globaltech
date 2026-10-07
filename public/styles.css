@@ -239,3 +239,44 @@ body.zoomed .citymark{display:none}
 
 .dbody .cover .badge{right:60px;top:16px}
 .dbody .cover .date{top:16px;left:16px}
+
+.src.gdg{background:rgba(66,133,244,.16);color:#8ab4f8}
+.gdg-chip{display:inline-flex;align-items:center;gap:6px;border-color:rgba(138,180,248,.45);color:#c6dafc}
+.gdg-chip.on{background:rgba(66,133,244,.22);border-color:#8ab4f8;color:#fff}
+.gdot{display:inline-grid;grid-template-columns:repeat(2,5px);gap:2px}
+.gdot i{width:5px;height:5px;border-radius:50%}
+.gdot i:nth-child(1){background:#4285f4}.gdot i:nth-child(2){background:#ea4335}.gdot i:nth-child(3){background:#fbbc04}.gdot i:nth-child(4){background:#34a853}
+
+/* tablet portrait: two-column cards */
+@media (min-width:600px) and (max-width:860px){
+  .cards{grid-template-columns:1fr 1fr}
+  .cards .more,.cards .empty{grid-column:1/-1}
+}
+/* phone landscape: list on the left, map on the right */
+@media (max-width:950px) and (max-height:500px) and (orientation:landscape){
+  .stats{display:none}
+  .topbar{height:48px}
+  .layout{inset:48px 0 0 0;grid-template-columns:min(380px,46vw) 1fr}
+  .mapwrap{position:relative;inset:auto}
+  .panel{position:relative;height:auto;border-radius:0;border:0;border-right:1px solid var(--line);box-shadow:none;padding:12px 14px 24px}
+  .panel.min,.panel.full{height:auto}
+  .grab{display:none}
+  .hero .sub,.hero h1{display:none}
+  .legend{bottom:10px}
+  .dsheet{width:min(520px,100%);height:100%;border-radius:0}
+}
+/* city labels: small cities show their label when hovered or when you zoom in */
+.citymark.small .lbl{opacity:0;pointer-events:none;transform:translateY(-50%) translateX(-4px);transition:opacity .15s,transform .15s}
+.citymark.small:hover .lbl,.citymark.small:focus-visible .lbl,body.near .citymark.small .lbl,.citymark.small.on .lbl{opacity:1;transform:translateY(-50%)}
+.citymark.small{width:14px;height:14px}
+.citymark.small .pulse{inset:-5px}
+
+/* floating labels for the busiest cities */
+.citylabel{display:block;text-align:left;cursor:pointer;background:rgba(12,18,34,.86);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:10px;padding:4px 9px;color:var(--ink);line-height:1.2;font:inherit;white-space:nowrap}
+.citylabel b{display:block;font:600 13px "Space Grotesk",system-ui,sans-serif}
+.citylabel small{font-size:11px;color:var(--mute)}
+.citylabel:hover,.citylabel.on{border-color:var(--mint)}
+body.zoomed .citylabel{display:none}
+.citytip .maplibregl-popup-content{width:auto;padding:7px 10px;font-size:13px;border-radius:10px}
+.citytip small{color:var(--mute)}
+@media (max-width:860px){ .citylabel{padding:3px 7px} .citylabel b{font-size:12px} .citylabel small{font-size:10px} }
