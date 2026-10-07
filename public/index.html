@@ -18,13 +18,14 @@
       <span class="logo" aria-hidden="true"><i></i></span>
       <span>Global<b>Tech</b></span>
     </a>
+    <a class="powered" href="https://mnemoiq.com" target="_blank" rel="noopener">powered by <b>mnemoIQ.com</b></a>
     <div class="stats" id="stats"></div>
     <button class="view-toggle" id="projToggle" title="Switch globe / flat map">◐ Globe</button>
   </header>
 
   <main class="layout">
     <aside class="panel" id="panel">
-      <div class="grab" id="grab" aria-hidden="true"></div>
+      <button class="grab" id="grab" aria-label="Expand or collapse the event list"></button>
       <section class="hero">
         <p class="eyebrow">Updated weekly · <span id="updated"></span></p>
         <h1>Tech events, <em>everywhere.</em></h1>
@@ -58,7 +59,7 @@
 
       <div class="list-head"><h2 id="listTitle">Upcoming worldwide</h2><span id="count"></span></div>
       <div class="cards" id="cards"></div>
-      <footer class="foot">Data found by a weekly agent using the You.com Search API · Always confirm details on the event page.</footer>
+      <footer class="foot">Powered by <a href="https://mnemoiq.com" target="_blank" rel="noopener">mnemoIQ.com</a> · Data found by a weekly agent using the You.com Search API · Always confirm details on the event page.</footer>
     </aside>
 
     <section class="mapwrap">
@@ -70,6 +71,13 @@
       </div>
     </section>
   </main>
+
+  <div class="detail" id="detail" hidden role="dialog" aria-modal="true" aria-labelledby="dtitle">
+    <div class="dsheet">
+      <button class="dclose" aria-label="Close details">×</button>
+      <div class="dbody"></div>
+    </div>
+  </div>
 
   <script src="vendor/maplibre-gl.js"></script>
   <script src="app.js"></script>

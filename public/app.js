@@ -1,7 +1,8 @@
 /* GlobalTech — map + list of upcoming tech events (data/events.json) */
 (() => {
   const $ = (s) => document.querySelector(s);
-  const state = { all: [], q: "", when: "all", free: false, src: "all", hot: null };
+  let spinning = true, idleT = null;
+  const state = { all: [], city: "", q: "", when: "all", free: false, src: "all", hot: null };
   const PALETTES = [["#5cf2c0","#8b7cff"],["#ff6fb5","#8b7cff"],["#ffb84d","#ff6fb5"],["#5cc8ff","#5cf2c0"],["#8b7cff","#5cc8ff"]];
   const todayISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
   const esc = (s = "") => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -86,15 +87,15 @@
   }
 
   function cardHTML(e) {
-    return `<a class="card" href="${esc(e.url)}" target="_blank" rel="noopener" data-id="${esc(e.id)}">
+    return `<article class="card" tabindex="0" role="button" aria-label="${esc(e.title)} details" data-id="${esc(e.id)}">
       ${coverHTML(e)}
       <div class="body">
         <div class="meta"><span class="when">${whenText(e)}${e.time ? " · " + hhmm(e.time) + (e.endTime ? "–" + hhmm(e.endTime) : "") : ""}</span>·<span>${esc(e.area && e.area !== e.city ? e.area + ", " + e.city : e.city + ", " + e.country)}</span></div>
         ${e.host ? `<div class="host">by ${esc(e.host)}</div>` : ""}
         <h3>${esc(e.title)}</h3>
         ${e.description ? `<p>${esc(e.description)}</p>` : ""}
-        <div class="row"><span class="src ${esc(e.platform)}">${srcLabel[e.platform] || "Web"}</span><span class="go">View &amp; register ↗</span></div>
-      </div></a>`;
+        <div class="row"><span class="src ${esc(e.platform)}">${srcLabel[e.platform] || "Web"}</span><span class="go">Details →</span></div>
+      </div></article>`;
   }
 
   /* ---------- filtering ---------- */
@@ -105,6 +106,7 @@
     const q = state.q.trim().toLowerCase();
     return state.all.filter((e) =>
       (e.end || e.start) >= t && e.start <= max &&
+      (!state.city || e.city === state.city) &&
       (!state.free || e.free) &&
       (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite", "techweek"].includes(e.platform))) &&
       (!q || [e.city, e.area, e.country, e.title, e.host, ...(e.tags || [])].join(" ").toLowerCase().includes(q))
@@ -114,7 +116,10 @@
   function render(fly = false) {
     const list = filtered();
     const q = state.q.trim();
-    $("#listTitle").textContent = q ? `Events matching “${q}”` : "Upcoming worldwide";
+    $("#listTitle").innerHTML = state.city
+      ? `Events in ${esc(state.city)} <button class="city-x" id="cityX" aria-label="Show all cities">× all cities</button>`
+      : q ? `Events matching “${esc(q)}”` : "Upcoming worldwide";
+    const cx = $("#cityX"); if (cx) cx.onclick = () => setCity("");
     $("#count").textContent = `${list.length} event${list.length === 1 ? "" : "s"}`;
     if (fly !== "more") shown = PAGE;
     $("#cards").innerHTML = list.length ? list.slice(0, shown).map(cardHTML).join("") + (list.length > shown ? `<button class="more" id="more">Show more (${list.length - shown} left)</button>` : "") :
@@ -123,11 +128,13 @@
     hydrateCovers($("#cards"));
     $("#cards").querySelectorAll(".card").forEach((el, i) => {
       el.style.animationDelay = `${Math.min(i, 12) * 35}ms`;
+      bindCard(el);
       el.addEventListener("mouseenter", () => highlight(el.dataset.id));
       el.addEventListener("mouseleave", () => highlight(null));
     });
     let src = null; try { src = map.getSource && map.getSource("events"); } catch {}
     if (src) src.setData(toGeo(list));
+    renderCityMarkers(list);
     if (fly === true) flyTo(list);
   }
 
@@ -140,14 +147,27 @@
     const top = Object.entries(cities).sort((a, b) => b[1] - a[1]);
     $("#cityList").innerHTML = top.map(([c]) => `<option value="${esc(c)}">`).join("");
     $("#cityChips").innerHTML = top.slice(0, 14).map(([c, n]) => `<button class="chip" data-city="${esc(c)}">${esc(c)}<small>${n}</small></button>`).join("");
-    $("#cityChips").querySelectorAll(".chip").forEach((b) => b.onclick = () => setQuery(state.q === b.dataset.city ? "" : b.dataset.city));
+    $("#cityChips").querySelectorAll(".chip").forEach((b) => b.onclick = () => setCity(state.city === b.dataset.city ? "" : b.dataset.city));
   }
 
   function setQuery(v) {
-    state.q = v; $("#q").value = v;
+    // typing a known city name selects that city
+    const known = state.all.find((e) => e.city.toLowerCase() === v.trim().toLowerCase());
+    if (known) { $("#q").value = v; return setCity(known.city, true); }
+    state.city = ""; state.q = v; $("#q").value = v;
     $(".search").classList.toggle("has", !!v);
-    document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.dataset.city === v));
+    document.querySelectorAll(".chip").forEach((c) => c.classList.remove("on"));
     render(true);
+  }
+  function setCity(city, keepInput) {
+    state.city = city; state.q = "";
+    if (!keepInput) $("#q").value = city;
+    $(".search").classList.toggle("has", !!city);
+    document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.dataset.city === city));
+    spinning = false;
+    render(true);
+    if (city && innerWidth <= 860 && window.setSheet) window.setSheet("half");
+    $("#panel").scrollTo({ top: 0, behavior: "smooth" });
   }
 
   /* ---------- map ---------- */
@@ -156,7 +176,7 @@
     container: "map",
     style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
     localIdeographFontFamily: "sans-serif",
-    center: [10, 25], zoom: 1.4, attributionControl: { compact: true },
+    center: [-30, 28], zoom: 2.15, attributionControl: { compact: true },
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   // Built-in fallback basemap (no external servers) if the online basemap can't load
@@ -186,11 +206,13 @@
   });
 
   function flyTo(list) {
-    if (!state.q) return map.flyTo({ center: [10, 25], zoom: 1.4, speed: 0.9 });
+    if (!state.q && !state.city) { spinning = true; return map.flyTo({ center: [map.getCenter().lng, 28], zoom: 2.15, speed: 0.9 }); }
     if (list.length && window.maplibregl && map.getCanvas) {
       const b = new maplibregl.LngLatBounds();
       list.forEach((e) => b.extend([e.lng, e.lat]));
-      return map.fitBounds(b, { padding: 120, maxZoom: 10, duration: 1600 });
+      const mob = innerWidth <= 860;
+      const pad = mob ? { top: 60, left: 30, right: 30, bottom: Math.round(innerHeight * 0.46) + 20 } : 120;
+      return map.fitBounds(b, { padding: pad, maxZoom: 10, duration: 1600 });
     }
     // Unknown city: geocode it so the user still lands there
     fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(state.q)}`)
@@ -208,18 +230,18 @@
     map.setSky?.({ "sky-color": "#070b16", "horizon-color": "#1a1f4a", "atmosphere-blend": 0.6 });
     map.addSource("events", { type: "geojson", data: toGeo(filtered()), cluster: true, clusterRadius: 44, clusterMaxZoom: 11 });
     setTimeout(() => { try { map.getSource("events").setData(toGeo(filtered())); } catch {} }, 0);
-    map.addLayer({ id: "cl-glow", type: "circle", source: "events", filter: ["has", "point_count"],
+    map.addLayer({ id: "cl-glow", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["has", "point_count"],
       paint: { "circle-color": "#ffb84d", "circle-opacity": 0.18, "circle-radius": ["step", ["get", "point_count"], 26, 10, 34, 40, 44] } });
-    map.addLayer({ id: "cl", type: "circle", source: "events", filter: ["has", "point_count"],
+    map.addLayer({ id: "cl", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["has", "point_count"],
       paint: { "circle-color": "#ffb84d", "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 40, 26], "circle-stroke-width": 2, "circle-stroke-color": "#070b16" } });
-    if (map.getStyle().glyphs) map.addLayer({ id: "cl-n", type: "symbol", source: "events", filter: ["has", "point_count"],
+    if (map.getStyle().glyphs) map.addLayer({ id: "cl-n", minzoom: CITY_ZOOM, type: "symbol", source: "events", filter: ["has", "point_count"],
       layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": ["Montserrat Medium"], "text-size": 13 }, paint: { "text-color": "#1a1200" } });
     const col = ["case", ["get", "free"], "#5cf2c0", "#8b7cff"];
-    map.addLayer({ id: "pt-glow", type: "circle", source: "events", filter: ["!", ["has", "point_count"]],
+    map.addLayer({ id: "pt-glow", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["!", ["has", "point_count"]],
       paint: { "circle-color": col, "circle-radius": 18, "circle-opacity": 0.22, "circle-blur": 0.6 } });
-    map.addLayer({ id: "pt", type: "circle", source: "events", filter: ["!", ["has", "point_count"]],
+    map.addLayer({ id: "pt", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["!", ["has", "point_count"]],
       paint: { "circle-color": col, "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" } });
-    map.addLayer({ id: "pt-hot", type: "circle", source: "events", filter: ["==", ["get", "id"], ""],
+    map.addLayer({ id: "pt-hot", minzoom: CITY_ZOOM, type: "circle", source: "events", filter: ["==", ["get", "id"], ""],
       paint: { "circle-color": "transparent", "circle-radius": 16, "circle-stroke-width": 3, "circle-stroke-color": "#fff" } });
 
     map.on("click", "cl", async (ev) => {
@@ -230,9 +252,10 @@
     map.on("click", "pt", (ev) => {
       const ids = map.queryRenderedFeatures(ev.point, { layers: ["pt"] }).map((f) => f.properties.id);
       const evs = state.all.filter((e) => ids.includes(e.id));
+      if (innerWidth <= 860 && evs.length) return openDetail(evs[0].id);
       new maplibregl.Popup({ offset: 14, maxWidth: "280px" }).setLngLat(ev.features[0].geometry.coordinates)
         .setHTML(`<div class="pop">${evs.map(cardHTML).join("")}</div>`).addTo(map);
-      setTimeout(() => document.querySelectorAll(".maplibregl-popup").forEach(hydrateCovers), 0);
+      setTimeout(() => document.querySelectorAll(".maplibregl-popup").forEach((p) => { hydrateCovers(p); p.querySelectorAll(".card").forEach(bindCard); }), 0);
       const card = document.querySelector(`#cards .card[data-id="${ids[0]}"]`);
       if (card) { card.scrollIntoView({ behavior: "smooth", block: "center" }); card.classList.add("hot"); setTimeout(() => card.classList.remove("hot"), 1600); }
     });
@@ -243,11 +266,17 @@
   });
 
   // slow idle spin on the globe until the user interacts
-  let spinning = true;
-  const spin = () => { if (spinning && globe && map.getZoom() < 2.5) { const c = map.getCenter(); c.lng += 0.6; map.easeTo({ center: c, duration: 1000, easing: (n) => n }); } };
+  idleT = null;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const spin = () => {
+    if (reduce || !spinning || !globe || state.city || state.q || map.getZoom() > 3.2 || document.hidden) return;
+    const c = map.getCenter(); c.lng += 1.2;
+    map.easeTo({ center: c, duration: 1000, easing: (n) => n });
+  };
   map.on("moveend", spin);
-  ["mousedown", "touchstart", "wheel"].forEach((t) => map.on(t, () => (spinning = false)));
-  map.once("load", () => setTimeout(spin, 800));
+  const pause = () => { spinning = false; clearTimeout(idleT); idleT = setTimeout(() => { spinning = true; spin(); }, 12000); };
+  ["mousedown", "touchstart", "wheel", "dragstart"].forEach((t) => map.on(t, pause));
+  map.once("load", () => setTimeout(spin, 600));
 
   $("#projToggle").onclick = () => {
     if (!map.setProjection) return;
@@ -256,10 +285,82 @@
     $("#projToggle").textContent = globe ? "◐ Globe" : "▭ Flat map";
   };
 
+
+  /* ---------- city markers on the globe ---------- */
+  const CITY_ZOOM = 7.5;
+  let cityMarkers = [];
+  function renderCityMarkers(list) {
+    if (!window.maplibregl || !map.getCanvas) return;
+    cityMarkers.forEach((m) => m.remove()); cityMarkers = [];
+    const by = {};
+    list.forEach((e) => (by[e.city] = by[e.city] || []).push(e));
+    Object.entries(by).forEach(([city, evs]) => {
+      const med = (k) => { const v = evs.map((e) => e[k]).sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; };
+      const free = evs.filter((e) => e.free).length;
+      const el = document.createElement("button");
+      el.className = "citymark" + (state.city === city ? " on" : "");
+      el.setAttribute("aria-label", `${city}: ${evs.length} events`);
+      el.innerHTML = `<i class="pulse"></i><i class="core ${free ? "has-free" : ""}"></i><span class="lbl"><b>${esc(city)}</b><small>${evs.length.toLocaleString()} event${evs.length === 1 ? "" : "s"}${free ? ` · ${free} free` : ""}</small></span>`;
+      el.addEventListener("click", (ev) => { ev.stopPropagation(); setCity(city); });
+      cityMarkers.push(new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([med("lng"), med("lat")]).addTo(map));
+    });
+    toggleCityMarkers();
+  }
+  function toggleCityMarkers() {
+    const z = map.getZoom ? map.getZoom() : 0;
+    document.body.classList.toggle("zoomed", z >= CITY_ZOOM);
+  }
+  map.on("zoom", toggleCityMarkers);
+
+  /* ---------- event detail ---------- */
+  function bindCard(el) {
+    if (el.dataset.bound) return; el.dataset.bound = "1";
+    const open = () => openDetail(el.dataset.id);
+    el.addEventListener("click", open);
+    el.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); open(); } });
+  }
+  const regLabel = { luma: "Register on Luma", eventbrite: "Get tickets on Eventbrite", meetup: "RSVP on Meetup", techweek: "RSVP via SF Tech Week", web: "Visit official site" };
+  function openDetail(id) {
+    const e = state.all.find((x) => x.id === id); if (!e) return;
+    const dlg = $("#detail");
+    const when = whenText(e) + (e.time ? ` · ${hhmm(e.time)}${e.endTime ? "–" + hhmm(e.endTime) : ""}` : "");
+    const place = e.area && e.area !== e.city ? `${e.area}, ${e.city}, ${e.country}` : `${e.city}, ${e.country}`;
+    dlg.querySelector(".dbody").innerHTML = `
+      ${coverHTML(e)}
+      <div class="dinner">
+        <div class="dtags"><span class="src ${esc(e.platform)}">${srcLabel[e.platform] || "Web"}</span>${(e.tags || []).filter((t) => t !== e.area && t !== "SF Tech Week").slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+        <h2 id="dtitle">${esc(e.title)}</h2>
+        <dl class="facts">
+          <div><dt>When</dt><dd>${when}</dd></div>
+          <div><dt>Where</dt><dd>${esc(place)}</dd></div>
+          ${e.host ? `<div><dt>Host</dt><dd>${esc(e.host)}</dd></div>` : ""}
+          <div><dt>Price</dt><dd>${e.free ? '<b class="freetxt">Free</b>' : esc(e.price || "See event page")}</dd></div>
+        </dl>
+        ${e.description ? `<p class="ddesc">${esc(e.description)}</p>` : ""}
+        <div class="dactions">
+          <a class="cta" href="${esc(e.url)}" target="_blank" rel="noopener">${regLabel[e.platform] || "Open event page"} ↗</a>
+          <button class="ghost" id="dmap">Show on map</button>
+        </div>
+        <p class="dnote">Details come from the event page. Always confirm time and venue there before you go.</p>
+      </div>`;
+    hydrateCovers(dlg);
+    dlg.querySelector("#dmap").onclick = () => { closeDetail(); spinning = false; map.flyTo({ center: [e.lng, e.lat], zoom: 14, duration: 1600 }); highlight(e.id); };
+    dlg.hidden = false; requestAnimationFrame(() => dlg.classList.add("open"));
+    dlg.querySelector(".dclose").focus();
+    try { history.replaceState(null, "", "#" + e.id.replace(/[^\w.~-]/g, "")); } catch {}
+  }
+  function closeDetail() {
+    const dlg = $("#detail"); dlg.classList.remove("open");
+    setTimeout(() => (dlg.hidden = true), 220);
+    try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+  }
+  $("#detail").addEventListener("click", (ev) => { if (ev.target.id === "detail" || ev.target.closest(".dclose")) closeDetail(); });
+  addEventListener("keydown", (k) => { if (k.key === "Escape" && !$("#detail").hidden) closeDetail(); });
+
   /* ---------- UI wiring ---------- */
   let t;
   $("#q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => setQuery(e.target.value), 280); });
-  $("#clear").onclick = () => setQuery("");
+  $("#clear").onclick = () => { setCity(""); setQuery(""); };
   $("#freeOnly").onchange = (e) => { state.free = e.target.checked; render(); };
   document.querySelectorAll("[data-when]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-when]").forEach((x) => x.classList.toggle("on", x === b)); state.when = b.dataset.when; render();
@@ -268,7 +369,24 @@
     document.querySelectorAll("[data-src]").forEach((x) => x.classList.toggle("on", x === b)); state.src = b.dataset.src; render();
   });
   const panel = $("#panel");
-  $("#grab").onclick = () => panel.classList.toggle("full");
+  const isMobile = () => innerWidth <= 860;
+  function setSheet(mode) { // "half" | "full" | "min"
+    panel.classList.toggle("full", mode === "full"); panel.classList.toggle("min", mode === "min");
+    document.body.classList.toggle("sheet-full", mode === "full"); document.body.classList.toggle("sheet-min", mode === "min");
+  }
+  window.setSheet = setSheet;
+  $("#grab").onclick = () => setSheet(panel.classList.contains("full") ? "min" : panel.classList.contains("min") ? "half" : "full");
+  // swipe the sheet handle up/down
+  let y0 = null;
+  $("#grab").addEventListener("touchstart", (e) => (y0 = e.touches[0].clientY), { passive: true });
+  $("#grab").addEventListener("touchend", (e) => {
+    if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
+    if (Math.abs(dy) < 25) return;
+    const cur = panel.classList.contains("full") ? "full" : panel.classList.contains("min") ? "min" : "half";
+    setSheet(dy < 0 ? (cur === "min" ? "half" : "full") : (cur === "full" ? "half" : "min"));
+  });
+  // dragging the map on a phone tucks the list away so the globe is usable
+  map.on("dragstart", () => { if (isMobile() && !panel.classList.contains("min")) setSheet("min"); });
 
   fetch("data/events.json", { cache: "no-cache" }).then((r) => r.json()).then((data) => {
     state.all = (data.events || []).filter((e) => Number.isFinite(e.lat) && Number.isFinite(e.lng));
@@ -276,5 +394,6 @@
     renderStats();
     const p = new URLSearchParams(location.search).get("city");
     p ? setQuery(p) : render();
+    const h = location.hash.slice(1); if (h && state.all.some((e) => e.id === h)) openDetail(h);
   }).catch(() => ($("#cards").innerHTML = `<div class="empty">Couldn’t load events.json</div>`));
 })();

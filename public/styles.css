@@ -142,3 +142,100 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--mint),var(--viole
 .cover .credit{display:none;position:absolute;left:12px;bottom:10px;font-size:11px;color:rgba(255,255,255,.85);text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .cover img.ph:not([hidden]) ~ .credit{display:block}
 .card:hover .cover img.ph{transform:scale(1.05);transition:transform .5s}
+
+/* ---- clickable cards ---- */
+.card{cursor:pointer}
+.card:focus-visible,.citymark:focus-visible,.cta:focus-visible,.ghost:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+.city-x{margin-left:8px;font:500 12px Inter,system-ui,sans-serif;color:var(--mute);background:transparent;border:1px solid var(--line);border-radius:999px;padding:3px 9px;vertical-align:middle}
+.city-x:hover{color:var(--ink);border-color:var(--violet)}
+
+/* ---- city markers ---- */
+.citymark{position:relative;width:18px;height:18px;padding:0;border:0;background:none;cursor:pointer}
+.citymark .core{position:absolute;inset:3px;border-radius:50%;background:var(--violet);box-shadow:0 0 0 2px #fff,0 0 16px var(--violet)}
+.citymark .core.has-free{background:var(--mint);box-shadow:0 0 0 2px #fff,0 0 16px var(--mint)}
+.citymark .pulse{position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(139,124,255,.55);animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{from{transform:scale(.4);opacity:1}to{transform:scale(1.6);opacity:0}}
+.citymark .lbl{position:absolute;left:22px;top:50%;transform:translateY(-50%);white-space:nowrap;text-align:left;background:rgba(12,18,34,.88);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:10px;padding:4px 9px;color:var(--ink);line-height:1.2;transition:border-color .15s,transform .15s}
+.citymark .lbl b{display:block;font:600 13px "Space Grotesk",system-ui,sans-serif}
+.citymark .lbl small{font-size:11px;color:var(--mute)}
+.citymark:hover .lbl,.citymark.on .lbl{border-color:var(--mint);transform:translateY(-50%) scale(1.05)}
+.citymark.on .core{background:var(--mint)}
+body.zoomed .citymark{display:none}
+@media (prefers-reduced-motion:reduce){.citymark .pulse{animation:none}}
+
+/* ---- event detail ---- */
+.detail{position:fixed;inset:0;z-index:50;background:rgba(3,6,14,.55);backdrop-filter:blur(4px);display:flex;justify-content:flex-end;opacity:0;transition:opacity .2s}
+.detail.open{opacity:1}
+.dsheet{position:relative;width:min(480px,100%);height:100%;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);box-shadow:-30px 0 60px rgba(0,0,0,.5);transform:translateX(30px);transition:transform .22s}
+.detail.open .dsheet{transform:none}
+.dclose{position:absolute;top:12px;right:12px;z-index:5;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(7,11,22,.8);color:var(--ink);font-size:22px;line-height:1}
+.dbody .cover{aspect-ratio:16/9;border-radius:0}
+.dbody .cover .art span{font-size:32px}
+.dinner{padding:20px 22px 32px;display:grid;gap:16px}
+.dtags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:8px;padding:3px 8px}
+.dinner h2{margin:0;font:700 26px/1.15 "Space Grotesk",system-ui,sans-serif;letter-spacing:-.01em;text-wrap:balance}
+.facts{margin:0;display:grid;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.facts div{display:grid;grid-template-columns:64px 1fr;gap:10px}
+.facts dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding-top:2px}
+.facts dd{margin:0;font-size:14px;line-height:1.45;min-width:0}
+.freetxt{color:var(--mint)}
+.ddesc{margin:0;color:#c9d1ec;font-size:15px;line-height:1.6}
+.dactions{display:flex;gap:10px;flex-wrap:wrap}
+.cta{flex:1;min-width:200px;text-align:center;text-decoration:none;font-weight:600;padding:13px 16px;border-radius:12px;background:linear-gradient(135deg,var(--mint),#8be8ff);color:#04241a}
+.cta:hover{filter:brightness(1.08)}
+.ghost{padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink);font-weight:500}
+.ghost:hover{border-color:var(--violet)}
+.dnote{margin:0;font-size:12px;color:var(--mute)}
+@media (max-width:860px){.detail{align-items:flex-end}.dsheet{width:100%;height:88vh;border-radius:20px 20px 0 0;border-left:0;border-top:1px solid var(--line);transform:translateY(40px)}}
+
+.powered{font-size:12px;color:var(--mute);text-decoration:none;border-left:1px solid var(--line);padding-left:14px;margin-left:-6px}
+.powered b{color:var(--ink);font-weight:600}
+.powered:hover b{color:var(--mint)}
+.foot a{color:var(--mint)}
+@media (max-width:480px){.powered{font-size:11px;padding-left:10px}}
+
+[hidden]{display:none!important}
+.detail[hidden]{display:none!important}
+
+/* ---------- mobile end-to-end ---------- */
+@media (max-width:860px){
+  html,body{overscroll-behavior:none}
+  .topbar{height:56px;padding:0 12px;gap:10px;padding-top:env(safe-area-inset-top,0px);height:calc(56px + env(safe-area-inset-top,0px))}
+  .brand{font-size:18px;gap:8px}
+  .logo{width:24px;height:24px}
+  .powered{margin-left:0;padding-left:10px;font-size:11px;line-height:1.2;max-width:120px}
+  .view-toggle{margin-left:auto;padding:7px 11px;font-size:12px;white-space:nowrap}
+  .layout{inset:calc(56px + env(safe-area-inset-top,0px)) 0 0 0}
+  .mapwrap{inset:calc(56px + env(safe-area-inset-top,0px)) 0 0 0}
+  .panel{height:46vh;padding:18px 16px calc(28px + env(safe-area-inset-bottom,0px));scroll-padding-top:12px}
+  .panel.full{height:calc(100dvh - 72px)}
+  .panel.min{height:132px;overflow:hidden}
+  .grab{width:100%;height:22px;margin:-12px 0 6px;background:none;border:0;display:flex;justify-content:center;align-items:center;cursor:grab}
+  .grab::before{content:"";width:44px;height:5px;border-radius:9px;background:var(--line)}
+  .hero h1{font-size:24px;margin:4px 0 6px}
+  .hero .sub{display:none}
+  .eyebrow{font-size:11px}
+  .search input{font-size:16px;padding:12px 8px}
+  .filters{flex-wrap:wrap;gap:8px}
+  .seg button{padding:8px 10px}
+  .seg.small{overflow-x:auto;scrollbar-width:none}
+  .seg.small button{flex:none;white-space:nowrap}
+  .legend{bottom:calc(46vh + 10px);left:10px;padding:6px 10px;gap:10px;font-size:11px}
+  body.sheet-full .legend,body.sheet-full .maplibregl-ctrl-top-right{display:none}
+  body.sheet-min .legend{bottom:142px}
+  .maplibregl-ctrl-top-right{top:6px;right:6px}
+  .citymark .lbl{padding:3px 7px;border-radius:8px}
+  .citymark .lbl b{font-size:12px}
+  .citymark .lbl small{font-size:10px}
+  .card .body h3{font-size:16px}
+  .cards{gap:12px}
+  .dinner{padding:18px 16px calc(28px + env(safe-area-inset-bottom,0px))}
+  .dinner h2{font-size:22px}
+  .cta{min-width:0}
+  .maplibregl-popup{display:none}
+}
+@media (max-width:380px){ .powered{display:none} }
+
+.dbody .cover .badge{right:60px;top:16px}
+.dbody .cover .date{top:16px;left:16px}
