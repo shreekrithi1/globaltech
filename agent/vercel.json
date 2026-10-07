@@ -1,7 +1,7 @@
 {
   "framework": null,
   "installCommand": "echo skip",
-  "buildCommand": "for f in ./vercel-build.sh ./agent/vercel-build.sh ../agent/vercel-build.sh; do if [ -f \"$f\" ]; then echo \"running $f\"; bash \"$f\"; break; fi; done; if [ ! -f public/index.html ]; then for p in ../public ./agent/../public; do if [ -f \"$p/index.html\" ]; then rm -rf public; cp -R \"$p\" ./public; break; fi; done; fi; echo \"publishing $(pwd)/public\"; ls public",
+  "buildCommand": "f=$(ls vercel-build.sh agent/vercel-build.sh ../agent/vercel-build.sh 2>/dev/null|head -1); [ -n \"$f\" ] && bash \"$f\"; [ -f public/index.html ] || cp -R ../public ./public; ls public",
   "outputDirectory": "public",
   "crons": [
     {
