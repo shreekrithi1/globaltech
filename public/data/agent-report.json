@@ -1,18 +1,31 @@
 {
-  "run": "2026-10-07T21:16:49Z",
+  "run": "2026-10-07T21:23:10Z",
   "today": "2026-10-07",
-  "pruned": 1,
+  "pruned": 0,
   "sources": {
+    "gdg": {
+      "ok": true,
+      "events": 976,
+      "seconds": 214.1
+    },
+    "techweek": {
+      "ok": false,
+      "error": "Expecting value: line 1 column 1 (char 0)"
+    },
     "confstech": {
       "ok": true,
       "events": 154,
-      "seconds": 4.7
+      "seconds": 5.5
+    },
+    "youcom": {
+      "ok": false,
+      "error": "YOU_COM_API is not set"
     }
   },
-  "fresh": 154,
-  "carried_over": 1958,
-  "duplicates_merged": 3,
-  "total": 2109,
-  "speaker_opportunities": 23,
-  "seconds": 9.7
+  "fresh": 1130,
+  "carried_over": 1004,
+  "duplicates_merged": 2,
+  "total": 2132,
+  "speaker_opportunities": 25,
+  "seconds": 227.8
 }

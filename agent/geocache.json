@@ -1,1 +1,323 @@
-{}
+{
+"abidjan|abidjan|côte d'ivoire": [
+5.320357,
+-4.016107
+],
+"accra|greater accra region|ghana": [
+5.5571096,
+-0.2012376
+],
+"amaravati, india|andhra pradesh|india": null,
+"anambra|anambra state|nigeria": [
+6.2579724,
+6.797171
+],
+"ankara|ankara|türkiye": [
+39.9207759,
+32.8540497
+],
+"baghdad|baghdad governorate|iraq": [
+33.3061701,
+44.3872213
+],
+"baltimore|md|united states of america": [
+39.2908816,
+-76.610759
+],
+"baraton|nandi county|kenya": [
+0.2589343,
+35.0864822
+],
+"bhilai|chhattisgarh|india": [
+21.2120677,
+81.3732849
+],
+"bhubaneswar|odisha|india": [
+20.2602964,
+85.8394521
+],
+"blacksburg|va|united states of america": [
+37.2296566,
+-80.4136767
+],
+"bristol|england|united kingdom": [
+51.4430141,
+-2.5816622
+],
+"cardiff|wales|united kingdom": [
+51.4816546,
+-3.1791934
+],
+"casablanca|casablanca-settat|morocco": [
+33.5945144,
+-7.6200284
+],
+"coimbatore|muscat governorate|morocco": null,
+"coimbatore|tamil nadu|india": [
+11.0018115,
+76.9628425
+],
+"conakry|conakry|guinea": [
+9.5036308,
+-13.7159318
+],
+"debrecen|hajdú-bihar|hungary": [
+47.531399,
+21.6259782
+],
+"embu|embu|kenya": [
+-0.5376699,
+37.4583949
+],
+"evanston|il|united states of america": [
+42.0693991,
+-87.682932
+],
+"gainesville|fl|united states of america": [
+29.6519684,
+-82.3249846
+],
+"hattiesburg|ms|united states of america": [
+31.3271189,
+-89.2903392
+],
+"howrah|west bengal|india": [
+22.5736296,
+88.3251045
+],
+"indore|madhya pradesh|india": [
+22.7203616,
+75.8681996
+],
+"khartoum|al khartum state|sudan": [
+15.5635972,
+32.5349123
+],
+"kirksville|mo|united states of america": [
+40.1948848,
+-92.5833939
+],
+"kolkata|west bengal|india": [
+22.5726459,
+88.3638953
+],
+"koper|koper-capodistria|slovenia": [
+45.5479864,
+13.7304781
+],
+"kuala lumpur|kuala lumpur|malaysia": [
+3.1395162,
+101.6937727
+],
+"malang|east java|indonesia": [
+-7.9771308,
+112.6340265
+],
+"manouba|manouba|tunisia": [
+36.8113307,
+10.0947037
+],
+"mohali, india|punjab|india": [
+30.6952431,
+76.7314039
+],
+"mombasa|mombasa county|kenya": [
+-4.05052,
+39.667169
+],
+"monroe|pa|united states of america": [
+41.0400423,
+-75.3249475
+],
+"oakville|on|canada": [
+43.447436,
+-79.666672
+],
+"osaka|osaka|japan": [
+34.6937569,
+135.5014539
+],
+"osogbo|os|nigeria": [
+7.7583223,
+4.5750447
+],
+"ouagadougou|centre|burkina faso": [
+12.3681873,
+-1.5270944
+],
+"ourense|galicia|spain": [
+42.1939629,
+-7.537124
+],
+"oxford|england|united kingdom": [
+51.7520131,
+-1.2578499
+],
+"panamá|panamá|panama": [
+8.9714493,
+-79.5341802
+],
+"parkville|victoria|australia": [
+-37.7871148,
+144.9515533
+],
+"pavlodar|provincia de pavlodar|kazakhstan": [
+52.2857573,
+76.9455035
+],
+"pelotas|rio grande do sul|brazil": [
+-31.5616084,
+-52.3439617
+],
+"perth|wa|australia": [
+-31.9558967,
+115.8605784
+],
+"philadelphia|pa|united states of america": [
+39.9527237,
+-75.1635262
+],
+"pittsburgh|pa|united states of america": [
+40.4406968,
+-80.0025666
+],
+"port harcourt|rivers state|nigeria": [
+4.7676576,
+7.0188527
+],
+"potosi|potosi department|bolivia": [
+-19.5892896,
+-65.7534713
+],
+"pristina|pristina|kosovo": [
+42.6638771,
+21.1640849
+],
+"pune|maharashtra|india": [
+18.5213738,
+73.8545071
+],
+"recife|pe|brazil": [
+-8.0584933,
+-34.8848193
+],
+"rochester|ny|united states of america": [
+43.157285,
+-77.615214
+],
+"roorkee|uttarakhand|india": [
+29.8693496,
+77.8902124
+],
+"ruiru|kiambu county|kenya": [
+-1.1774574,
+36.9824291
+],
+"salem|tamil nadu|india": [
+11.6469616,
+78.2106958
+],
+"samsun|provincia de samsun|türkiye": null,
+"san nicolas|sydney|aruba": null,
+"san pedro sula|cortés department|honduras": null,
+"san salvador|san salvador department|el salvador": [
+-26.2282182,
+-57.1817654
+],
+"santo domingo|santo domingo de los tsachilas|ecuador": [
+-0.2475027,
+-79.1713171
+],
+"setif|sétif|algeria": [
+36.1893494,
+5.4046876
+],
+"shijiazhuang|hebei|china": [
+38.0429742,
+114.5088385
+],
+"siheung, south korea|gyeonggi|south korea": null,
+"sudbury|on|canada": [
+46.49272,
+-80.991211
+],
+"suez, egypt|suez|egypt": null,
+"surrey|bc|canada": [
+49.1913033,
+-122.849143
+],
+"são josé dos campos|são paulo|brazil": [
+-23.1867782,
+-45.8854538
+],
+"taichung|taichung city|taiwan": [
+24.1046708,
+120.6143863
+],
+"taipei|taipei city|taiwan": [
+25.0612686,
+121.4598089
+],
+"tegucigalpa|francisco morazán department|honduras": null,
+"tempe|az|united states of america": [
+33.4255117,
+-111.940016
+],
+"thika|nairobi county|kenya": [
+-1.2358114,
+36.8723251
+],
+"tijuana|b.c.|mexico": [
+32.5364775,
+-117.0371232
+],
+"tirana|central albania|albania": [
+41.428089,
+19.9339945
+],
+"trabzon|trabzon|türkiye": [
+41.0054605,
+39.7301463
+],
+"valladolid|cl|spain": [
+41.6200024,
+-4.7259906
+],
+"venice|ve|italy": [
+45.4371908,
+12.3345898
+],
+"warangal, india|telangana|india": null,
+"windsor|on|canada": [
+42.2858536,
+-82.9780695
+],
+"wroclaw|lower silesia|poland": [
+51.1089776,
+17.0326689
+],
+"xi'an|shaanxi|china": [
+34.261004,
+108.9423363
+],
+"yamoussoukro|lacs district|côte d'ivoire": [
+7.0714182,
+-5.236375
+],
+"zamboanga|zamboanga peninsula|philippines": [
+7.9043,
+123.3194
+],
+"zhangjiakou|hebei|china": [
+40.8171433,
+114.8782861
+],
+"zhengzhou|henan|china": [
+34.7472531,
+113.619321
+],
+"zinder|zinder region|niger": [
+13.8063421,
+8.9891659
+]
+}
