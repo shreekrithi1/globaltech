@@ -83,7 +83,7 @@
     return `<div class="cover" data-place="${esc(place)}" data-city="${esc(e.city)}">${art}${ph}${img}
       ${e.image ? "" : `<span class="credit">${esc(place)} · Wikimedia</span>`}
       ${speakerOpen(e) ? `<span class="cfp-badge">🎤 Speakers wanted</span>` : ""}
-      <div class="date"><b>${d(e.start).getDate()}</b><small>${fmt(e.start, { month: "short" })}</small></div>
+      <div class="date">${e.start < todayISO() ? `<small>ON NOW</small><b>${d(todayISO()).getDate()}</b><small>${fmt(todayISO(), { month: "short" })}</small>` : `<b>${d(e.start).getDate()}</b><small>${fmt(e.start, { month: "short" })}</small>`}</div>
       <span class="badge ${e.free ? "free" : "paid"}">${e.free ? "FREE" : esc(e.price === "See event page" ? "Tickets" : e.price && e.price !== "Paid" ? e.price : "Paid")}</span></div>`;
   }
 
@@ -102,6 +102,20 @@
   const HACK_RE = /\b(hackathon|hack ?day|hack ?night|hack ?week|buildathon|codeathon|game ?jam|datathon|ideathon)\b/i;
   const isHack = (e) => (e._hack ??= (e.tags || []).includes("Hackathon") || e.platform === "devpost" || HACK_RE.test(e.title));
   const onMap = (e) => Number.isFinite(e.lat) && Number.isFinite(e.lng);
+  // When an event is next "on": today for anything already running, otherwise its start date.
+  const nextDay = (e) => (e.start < todayISO() ? todayISO() : e.start);
+  const chrono = (a, b) => {
+    const da = nextDay(a), db = nextDay(b);
+    if (da !== db) return da < db ? -1 : 1;
+    const ongA = a.start < da || (a.end && a.end !== a.start), ongB = b.start < db || (b.end && b.end !== b.start);
+    if (ongA !== ongB) return ongA ? 1 : -1;            // single-day sessions before multi-day/ongoing ones
+    const ta = a.time || "99:99", tb = b.time || "99:99";
+    if (ta !== tb) return ta < tb ? -1 : 1;
+    return a.title.localeCompare(b.title);
+  };
+  const dayLabel = (iso) => { const t = todayISO(); if (iso === t) return "Today";
+    const tm = new Date(d(t).getTime() + 864e5).toISOString().slice(0, 10); if (iso === tm) return "Tomorrow";
+    return fmt(iso, { weekday: "long", month: "short", day: "numeric" }) + (d(iso).getFullYear() !== d(t).getFullYear() ? ", " + d(iso).getFullYear() : ""); };
   const speakerOpen = (e) => !!e.speaker && (!e.speaker.deadline || e.speaker.deadline >= todayISO());
   /* ---------- filtering ---------- */
   function filtered() {
@@ -117,7 +131,7 @@
       (!state.hack || isHack(e)) &&
       (state.src === "all" || e.platform === state.src || (state.src === "web" && !["luma", "eventbrite", "techweek", "gdg"].includes(e.platform))) &&
       (!q || [e.city, e.area, e.country, e.title, e.host, ...(e.tags || [])].join(" ").toLowerCase().includes(q))
-    ).sort((a, b) => a.start.localeCompare(b.start));
+    ).sort(chrono);
   }
 
   function render(fly = false) {
@@ -129,7 +143,9 @@
     const cx = $("#cityX"); if (cx) cx.onclick = () => setCity("");
     $("#count").textContent = `${list.length} event${list.length === 1 ? "" : "s"}`;
     if (fly !== "more") shown = PAGE;
-    $("#cards").innerHTML = list.length ? list.slice(0, shown).map(cardHTML).join("") + (list.length > shown ? `<button class="more" id="more">Show more (${list.length - shown} left)</button>` : "") :
+    let lastDay = "";
+    const withHeads = (arr) => arr.map((e) => { const dd = nextDay(e); const h = dd !== lastDay ? `<h3 class="dayhead"><span>${dayLabel(dd)}</span><small>${list.filter((x) => nextDay(x) === dd).length}</small></h3>` : ""; lastDay = dd; return h + cardHTML(e); }).join("");
+    $("#cards").innerHTML = list.length ? withHeads(list.slice(0, shown)) + (list.length > shown ? `<button class="more" id="more">Show more (${list.length - shown} left)</button>` : "") :
       `<div class="empty">No upcoming events found${q ? ` for “${esc(q)}”` : ""} yet.<br>The agent searches new cities every week.</div>`;
     const mb = $("#more"); if (mb) mb.onclick = () => { shown += PAGE * 2; render("more"); };
     hydrateCovers($("#cards"));
